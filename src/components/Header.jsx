@@ -56,8 +56,18 @@ const Header = () => {
             </a>
           </nav>
 
-          {/* 3. RIGHT SIDE: MOBILE TOGGLE */}
+          {/* 3. RIGHT SIDE: DESKTOP BUTTON + MOBILE TOGGLE */}
           <div className="flex items-center gap-3 md:gap-6">
+            {/* Get Quote - Visible on Desktop only */}
+            <button 
+              className="hidden lg:flex bg-[#00B4D8] text-white font-bold text-sm tracking-widest uppercase py-3 px-6 pr-10 hover:bg-[#009ac0] transition-all items-center gap-2 shadow-lg group"
+              style={{ clipPath: 'polygon(0 0, 100% 0, 90% 100%, 0% 100%)' }}
+            >
+              Get Quote
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            {/* Hamburger Toggle */}
             <button 
               className="lg:hidden text-white relative z-[60]" 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -78,33 +88,31 @@ const Header = () => {
       <div 
         className={`fixed top-0 right-0 h-full w-[75%] bg-[#0033A1] shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden z-[55] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        {/* Sidebar Internal Header - "Menu" text aligned with X button */}
         <div className="flex items-center justify-between h-24 px-8 border-b border-white/5">
            <span className="text-white text-sm font-bold uppercase tracking-[0.2em]">Menu</span>
-           {/* Space reserved for X icon which is sitting in the main header z-60 */}
            <div className="w-7 h-7"></div> 
         </div>
 
         <div className="flex flex-col h-[calc(100%-6rem)] px-8 pb-10 justify-between mt-8">
-          {/* Top Section: Nav Links */}
+          {/* Top Section: Nav Links (Text only, reduced size) */}
           <div className="flex flex-col space-y-6">
-            <a href="#" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 text-white text-[14px] font-medium border-b border-white/10 pb-4">
+            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-4">
               Home
             </a>
-            <a href="#" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 text-white text-[14px] font-medium border-b border-white/10 pb-4">
+            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-4">
               About
             </a>
-            <a href="#" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 text-white text-[14px] font-medium border-b border-white/10 pb-4">
+            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-4">
               Services
             </a>
-            <a href="#" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-4 text-white text-[14px] font-medium border-b border-white/10 pb-4">
+            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-4">
               Contact
             </a>
           </div>
           
           {/* Bottom Section: Phone and Get Quote */}
           <div className="flex flex-col space-y-6">
-            <a href="tel:+0120234324" className="flex items-center gap-4 text-white font-bold text-[14px]">
+            <a href="tel:+0120234324" className="text-white font-bold text-[14px]">
               +012 023 4324
             </a>
 
