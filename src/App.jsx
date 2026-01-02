@@ -1,27 +1,43 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/homePage';
-
-// You can create a simple placeholder for other pages to test the routing
-const PlaceholderPage = ({ title }) => (
-  <div className="flex items-center justify-center h-screen bg-gray-100">
-    <h1 className="text-3xl font-bold">{title} Page Coming Soon!</h1>
-  </div>
-);
+import AboutPage from './pages/aboutPage';
+import ServicesPage from './pages/servicesPage';
+import HowPage from './pages/howPage';
+import Footer from './components/Footer'
+import Location from './components/Location'
+import Testimonials from './components/Testimonials'
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Main Landing Page */}
-        <Route path="/" element={<HomePage />} />
-        
-        {/* Example additional routes */}
-        <Route path="/features" element={<PlaceholderPage title="Features" />} />
-        <Route path="/pricing" element={<PlaceholderPage title="Pricing" />} />
-        <Route path="/support" element={<PlaceholderPage title="Support" />} />
-      </Routes>
-    </Router>
+    <>
+      <section id="home">
+        <HomePage />
+      </section>
+
+      <section id="about">
+        <AboutPage />
+      </section>
+
+      <section id="services">
+        <ServicesPage />
+      </section>
+
+      <section id="how">
+        <HowPage />
+      </section>
+
+      <section id="reviews">
+        <Testimonials />
+      </section>
+
+      <section>
+        <Location />
+      </section>
+
+      <section id="contacts">
+        <Footer />
+      </section>
+    </>
   );
 }
 

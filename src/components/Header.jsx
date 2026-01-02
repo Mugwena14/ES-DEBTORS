@@ -7,7 +7,9 @@ import {
   Mail,
   ArrowRight,
   Menu,
-  X 
+  X,
+  Settings,
+  MessageSquare 
 } from 'lucide-react';
 
 const Header = () => {
@@ -37,37 +39,43 @@ const Header = () => {
           </div>
 
           {/* 2. NAVIGATION LINKS (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-8">
-            <a href="#" className="flex items-center gap-2 text-white hover:text-[#00B4D8] transition-colors font-medium">
+          <nav className="hidden lg:flex items-center gap-6">
+            <a href="#home" className="flex items-center gap-1.5 text-white hover:text-[#00B4D8] transition-colors font-medium text-sm">
               <Home className="w-4 h-4 text-[#00B4D8]" /> Home
             </a>
-            <a href="#" className="flex items-center gap-2 text-white hover:text-[#00B4D8] transition-colors font-medium">
+            <a href="#about" className="flex items-center gap-1.5 text-white hover:text-[#00B4D8] transition-colors font-medium text-sm">
               <Info className="w-4 h-4 text-[#00B4D8]" /> About
             </a>
-            <a href="#" className="flex items-center gap-2 text-white hover:text-[#00B4D8] transition-colors font-medium">
+            <a href="#services" className="flex items-center gap-1.5 text-white hover:text-[#00B4D8] transition-colors font-medium text-sm">
               <Briefcase className="w-4 h-4 text-[#00B4D8]" /> Services
             </a>
-            <a href="#" className="flex items-center gap-2 text-white hover:text-[#00B4D8] transition-colors font-medium">
-              <Mail className="w-4 h-4 text-[#00B4D8]" /> Contact
+            {/* Added: How it Works */}
+            <a href="#how" className="flex items-center gap-1.5 text-white hover:text-[#00B4D8] transition-colors font-medium text-sm">
+              <Settings className="w-4 h-4 text-[#00B4D8]" /> How It Works
             </a>
-            <a href="tel:+27123456789" className="flex text-[15px] items-center gap-2 text-white hover:text-[#00B4D8] transition-colors font-bold">
+            {/* Added: Reviews */}
+            <a href="#reviews" className="flex items-center gap-1.5 text-white hover:text-[#00B4D8] transition-colors font-medium text-sm">
+              <MessageSquare className="w-4 h-4 text-[#00B4D8]" /> Reviews
+            </a>
+            <a href="#contacts" className="flex items-center gap-1.5 text-white hover:text-[#00B4D8] transition-colors font-medium text-sm">
+              <Mail className="w-4 h-4 text-[#00B4D8]" /> Contacts
+            </a>
+            <a href="tel:+0120234324" className="flex text-[14px] items-center gap-1.5 text-white hover:text-[#00B4D8] transition-colors font-bold ml-2">
               <Phone className="w-4 h-4 text-[#00B4D8] fill-[#00B4D8]" />
-              <span className="tracking-wider text-sm md:text-base">+012 023 4324</span>
+              <span className="tracking-wider">+012 023 4324</span>
             </a>
           </nav>
 
           {/* 3. RIGHT SIDE: DESKTOP BUTTON + MOBILE TOGGLE */}
           <div className="flex items-center gap-3 md:gap-6">
-            {/* Get Quote - Visible on Desktop only */}
             <button 
-              className="hidden lg:flex bg-[#00B4D8] text-white font-bold text-sm tracking-widest uppercase py-3 px-6 pr-10 hover:bg-[#009ac0] transition-all items-center gap-2 shadow-lg group"
+              className="hidden lg:flex bg-[#00B4D8] text-white font-bold text-[11px] tracking-widest uppercase py-3 px-5 pr-8 hover:bg-[#009ac0] transition-all items-center gap-2 shadow-lg group"
               style={{ clipPath: 'polygon(0 0, 100% 0, 90% 100%, 0% 100%)' }}
             >
               Get Quote
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </button>
 
-            {/* Hamburger Toggle */}
             <button 
               className="lg:hidden text-white relative z-[60]" 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -90,32 +98,21 @@ const Header = () => {
       >
         <div className="flex items-center justify-between h-24 px-8 border-b border-white/5">
            <span className="text-white text-sm font-bold uppercase tracking-[0.2em]">Menu</span>
-           <div className="w-7 h-7"></div> 
         </div>
 
         <div className="flex flex-col h-[calc(100%-6rem)] px-8 pb-10 justify-between mt-8">
-          {/* Top Section: Nav Links (Text only, reduced size) */}
-          <div className="flex flex-col space-y-6">
-            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-4">
-              Home
-            </a>
-            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-4">
-              About
-            </a>
-            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-4">
-              Services
-            </a>
-            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-4">
-              Contact
-            </a>
+          <div className="flex flex-col space-y-5">
+            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-3">Home</a>
+            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-3">About</a>
+            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-3">Services</a>
+            {/* Added to Mobile */}
+            <a href="#how" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-3">How It Works</a>
+            <a href="#reviews" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-3">Reviews</a>
+            <a href="#" onClick={() => setIsMenuOpen(false)} className="text-white text-[14px] font-medium border-b border-white/10 pb-3">Contact</a>
           </div>
           
-          {/* Bottom Section: Phone and Get Quote */}
           <div className="flex flex-col space-y-6">
-            <a href="tel:+0120234324" className="text-white font-bold text-[14px]">
-              +012 023 4324
-            </a>
-
+            <a href="tel:+0120234324" className="text-white font-bold text-[14px]">+012 023 4324</a>
             <button 
               className="bg-[#00B4D8] text-white font-bold text-sm tracking-widest uppercase py-4 px-6 pr-10 hover:bg-[#009ac0] transition-all flex items-center justify-between shadow-lg group"
               style={{ clipPath: 'polygon(0 0, 100% 0, 90% 100%, 0% 100%)' }}
