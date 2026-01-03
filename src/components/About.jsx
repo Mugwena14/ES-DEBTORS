@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle2, Star, X, Info } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Star, X, Info, Phone } from 'lucide-react';
 
 const About = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,19 +80,34 @@ const About = () => {
               ))}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-8 items-start sm:items-center">
+            <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center">
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className="bg-[#00B4D8] text-white font-bold text-xs tracking-widest uppercase py-4 px-8 pr-10 hover:bg-[#0033A1] transition-all flex items-center gap-3 shadow-lg group relative"
+                className="bg-[#00B4D8] text-white font-bold text-xs tracking-widest uppercase py-4 px-8 pr-10 hover:bg-[#0033A1] transition-all flex items-center gap-3 shadow-lg group relative shrink-0"
                 style={{ clipPath: 'polygon(0 0, 100% 0, 90% 100%, 0% 100%)' }}
               >
                 Requirements
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
               
-              <div className="flex flex-col border-l-2 border-[#2ED8D4]/20 pl-4 sm:border-0 sm:pl-0">
-                <span className="text-gray-400 text-[10px] uppercase font-bold tracking-widest">Free Credit Check</span>
-                <span className="text-[#0033A1] font-bold text-lg md:text-xl">+012 023 4324</span>
+              <div className="flex items-center gap-3 border-l-2 border-[#2ED8D4]/20 pl-5 h-12 flex-nowrap">
+                <div className="bg-[#0033A1]/5 p-2 text-[#0033A1] shrink-0">
+                  <Phone size={18} />
+                </div>
+                <div className="flex flex-col min-w-max">
+                  <span className="text-gray-400 text-[8px] uppercase font-bold tracking-widest leading-none mb-1.5">Free Credit Check</span>
+                  <div className="flex items-center gap-3">
+                    <a href="tel:+27120234324" className="flex flex-col group">
+                      <span className="text-[#0033A1] font-bold text-[13px] md:text-[14px] leading-none group-hover:text-[#00B4D8] transition-colors tracking-tight">+27 12 023 4324</span>
+                      <span className="text-[7px] text-[#00B4D8] font-bold uppercase tracking-tighter mt-1">PTA Office</span>
+                    </a>
+                    <div className="w-[1px] bg-gray-200 h-5"></div>
+                    <a href="tel:+27131706148" className="flex flex-col group">
+                      <span className="text-[#0033A1] font-bold text-[13px] md:text-[14px] leading-none group-hover:text-[#00B4D8] transition-colors tracking-tight">+27 13 170 6148</span>
+                      <span className="text-[7px] text-[#00B4D8] font-bold uppercase tracking-tighter mt-1">BFT Office</span>
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -102,13 +117,11 @@ const About = () => {
       {/* REQUIREMENTS MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-[#11013d]/80 backdrop-blur-sm transition-opacity"
             onClick={() => setIsModalOpen(false)}
           ></div>
           
-          {/* Modal Content */}
           <div className="relative bg-white w-full max-w-md shadow-2xl transform transition-all border-t-4 border-[#00B4D8]">
             <button 
               onClick={() => setIsModalOpen(false)}
