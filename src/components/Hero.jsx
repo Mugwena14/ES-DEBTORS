@@ -46,13 +46,14 @@ const Hero = () => {
 
           <div className="flex flex-col gap-8">
             {/* Button */}
-            <button 
+            <a 
+              href="#services"
               className="bg-white text-black font-bold text-sm tracking-widest uppercase py-4 px-8 pr-12 hover:bg-gray-100 transition-colors flex items-center gap-3 drop-shadow-md group w-fit"
               style={{ clipPath: 'polygon(0 0, 100% 0, 92% 100%, 0% 100%)' }}
             >
               Our Services
               <Play className="w-4 h-4 fill-black group-hover:scale-110 transition-transform" />
-            </button>
+            </a>
 
             {/* Social Icons Section */}
             <div className="flex items-center gap-4">
