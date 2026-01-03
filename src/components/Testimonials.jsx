@@ -24,15 +24,22 @@ const Testimonials = () => {
   ];
 
   return (
-    <section className="bg-[#11013d] py-24 relative overflow-hidden">
+    <section className="bg-[#11013d] py-16 md:py-24 relative overflow-hidden">
       {/* Decorative Brand Accents */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-[#00B4D8]/5 blur-[100px] rounded-full"></div>
       <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#2ED8D4]/5 blur-[100px] rounded-full"></div>
 
       <div className="container mx-auto px-6 lg:px-24 relative z-10">
         
-        {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        {/* MOBILE ONLY TAG (Centered) */}
+        <div className="flex md:hidden justify-center mb-10">
+          <span className="text-[#00B4D8] font-bold text-xs uppercase tracking-[0.3em] border-b border-[#00B4D8]/30 pb-2">
+            Success Stories
+          </span>
+        </div>
+
+        {/* DESKTOP HEADER - Hidden on Mobile */}
+        <div className="hidden md:block text-center max-w-3xl mx-auto mb-16">
           <div className="inline-block mb-4">
             <span className="text-[#00B4D8] font-bold text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-3">
               <span className="w-8 h-[2px] bg-[#00B4D8]"></span>
@@ -69,7 +76,7 @@ const Testimonials = () => {
               </div>
 
               {/* Review Text */}
-              <p className="text-blue-100/80 italic leading-relaxed mb-8 relative z-10">
+              <p className="text-blue-100/80 italic leading-relaxed mb-8 relative z-10 text-[15px]">
                 "{review.text}"
               </p>
 
@@ -92,11 +99,11 @@ const Testimonials = () => {
           ))}
         </div>
 
-        {/* Trust Footer */}
-        <div className="mt-16 flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
-           <span className="text-white font-black text-xl tracking-tighter italic">NCA REGULATED</span>
-           <span className="text-white font-black text-xl tracking-tighter italic">POPI COMPLIANT</span>
-           <span className="text-white font-black text-xl tracking-tighter italic">NCR REGISTERED</span>
+        {/* Trust Footer - Centered on all devices */}
+        <div className="mt-16 flex flex-col md:flex-row justify-center items-center gap-6 md:gap-16 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
+           <span className="text-white font-black text-lg md:text-xl tracking-tighter italic">NCA REGULATED</span>
+           <span className="text-white font-black text-lg md:text-xl tracking-tighter italic">POPI COMPLIANT</span>
+           <span className="text-white font-black text-lg md:text-xl tracking-tighter italic">NCR REGISTERED</span>
         </div>
       </div>
     </section>

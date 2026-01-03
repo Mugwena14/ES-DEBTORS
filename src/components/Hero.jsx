@@ -1,6 +1,22 @@
 import React from 'react';
-import { Play, Facebook, Linkedin, Instagram } from 'lucide-react';
+import { Play, Facebook, Instagram, Twitter } from 'lucide-react';
 import QuoteForm from './QuoteForm'; 
+
+// Custom TikTok Icon component
+const TikTokIcon = ({ size = 18 }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+  </svg>
+);
 
 const Hero = () => {
   return (
@@ -44,13 +60,16 @@ const Hero = () => {
               <div className="h-[3px] w-8 bg-[#00B4D8]/90"></div>
               <div className="flex gap-3">
                 {[
-                  { Icon: Facebook, link: "#" },
-                  { Icon: Linkedin, link: "#" },
-                  { Icon: Instagram, link: "#" }
+                  { Icon: Facebook, href: "https://www.facebook.com/p/Mkhdebtors" },
+                  { Icon: TikTokIcon, href: "http://tiktok.com/@mkhdebtorsassociates" },
+                  { Icon: Instagram, href: "https://www.instagram.com/mkh_debtors/" },
+                  { Icon: Twitter, href: "https://x.com/DebtorsS" }
                 ].map((social, i) => (
                   <a 
                     key={i} 
-                    href={social.link} 
+                    href={social.href} 
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-10 h-10 text-gray-200 border border-[#00B4D8]/50 bg-white/5 flex items-center justify-center hover:bg-[#00B4D8] hover:border-[#00B4D8] hover:text-white transition-all duration-300"
                   >
                     <social.Icon size={18} />
@@ -62,7 +81,9 @@ const Hero = () => {
         </div>
 
         {/* RIGHT COLUMN: The Imported Form Component */}
-        <QuoteForm />
+        <div className="relative z-20">
+           <QuoteForm />
+        </div>
 
       </div>
     </div>

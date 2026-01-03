@@ -1,7 +1,31 @@
 import React from 'react';
-import { Mail, Phone, MapPin, Facebook, Linkedin, Instagram } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
+
+// Custom TikTok Icon component since it's not in the standard lucide-react set
+const TikTokIcon = ({ size = 18 }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+  </svg>
+);
 
 const Footer = () => {
+  // Updated social media links
+  const socialLinks = [
+    { Icon: Facebook, href: "https://www.facebook.com/p/Mkhdebtors-associates" }, 
+    { Icon: TikTokIcon, href: "http://tiktok.com/@mkhdebtorsassociates" }, 
+    { Icon: Instagram, href: "https://www.instagram.com/mkh_debtors/" },
+    { Icon: Twitter, href: "https://x.com/DebtorsS" }
+  ];
+
   return (
     <footer className="bg-[#11013d] pt-20 pb-5 border-t border-white/5">
       <div className="container mx-auto px-6 lg:px-24 -mt-10">
@@ -30,14 +54,17 @@ const Footer = () => {
               Fix your credit, reduce debt & Achieve your financial freedom today!!
             </p>
 
+            {/* SOCIAL ICONS WITH LINKS */}
             <div className="flex gap-3">
-              {[Facebook, Linkedin, Instagram].map((Icon, i) => (
+              {socialLinks.map((social, i) => (
                 <a 
                   key={i} 
-                  href="#" 
+                  href={social.href} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
                   className="w-10 h-10 bg-white/5 flex items-center justify-center hover:bg-[#00B4D8] transition-all text-white border border-white/10"
                 >
-                  <Icon size={18} />
+                  <social.Icon size={18} />
                 </a>
               ))}
             </div>
@@ -55,18 +82,30 @@ const Footer = () => {
                   Pretoria Central, 0002
                 </span>
               </li>
+              
               <li className="flex items-center gap-3 text-blue-100/60 text-sm group">
                 <Phone size={18} className="text-[#00B4D8] shrink-0" />
-                <span className="group-hover:text-white transition-colors text-[13px]">+27 12 023 4324</span>
+                <a 
+                  href="tel:+27120234324" 
+                  className="group-hover:text-white transition-colors text-[13px]"
+                >
+                  +27 12 023 4324
+                </a>
               </li>
+
               <li className="flex items-center gap-3 text-blue-100/60 text-sm group">
                 <Mail size={18} className="text-[#00B4D8] shrink-0" />
-                <span className="group-hover:text-white transition-colors text-[13px]">info@mkhdebtors.co.za</span>
+                <a 
+                  href="mailto:info@mkhdebtors.co.za" 
+                  className="group-hover:text-white transition-colors text-[13px]"
+                >
+                  info@mkhdebtors.co.za
+                </a>
               </li>
             </ul>
           </div>
 
-          {/* Column 3: Quick Links (Updated Service List) */}
+          {/* Column 3: Quick Links */}
           <div>
             <h4 className="text-white font-bold mb-6 uppercase text-xs tracking-widest">Our Services</h4>
             <ul className="space-y-3">

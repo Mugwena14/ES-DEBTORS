@@ -1,6 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Upload } from 'lucide-react';
 
 const QuoteForm = () => {
+  const [fileName, setFileName] = useState("");
+
+  const handleFileChange = (e) => {
+    if (e.target.files.length > 0) {
+      setFileName(e.target.files[0].name);
+    }
+  };
+
   return (
     <div className="w-full max-w-md mt-5 ml-auto">
       {/* Blue Box Container */}
@@ -28,13 +37,24 @@ const QuoteForm = () => {
             />
           </div>
 
-          {/* 2. Grid for ID Number and Service Selection */}
+          {/* 2. Grid for ID Upload and Service Selection */}
           <div className="grid grid-cols-2 gap-3">
-            <input 
-              type="text" 
-              placeholder="ID Number" 
-              className="w-full p-3 text-[13px] text-gray-800 bg-white rounded-sm border-none outline-none focus:ring-2 focus:ring-[#00B4D8]"
-            />
+            {/* Custom Styled File Input */}
+            <div className="relative">
+              <label className="flex items-center justify-between w-full p-3 bg-white rounded-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                <span className={`text-[11px] truncate ${fileName ? 'text-[#00B4D8] font-bold' : 'text-gray-400'}`}>
+                  {fileName || "Upload ID Copy"}
+                </span>
+                <Upload size={14} className="text-gray-400 shrink-0 ml-1" />
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*,.pdf"
+                  onChange={handleFileChange}
+                />
+              </label>
+            </div>
+
             <select 
               className="w-full p-3 text-[13px] text-gray-800 bg-white rounded-sm border-none outline-none focus:ring-2 focus:ring-[#00B4D8] appearance-none cursor-pointer"
               defaultValue=""
