@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Block internal / admin / non-public routes
+Disallow: /admin/
+Disallow: /invoice/
+
+# Sitemap location
+Sitemap: https://mkhdebtors.co.za/sitemap.xml
