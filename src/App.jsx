@@ -7,6 +7,7 @@ import Footer from './components/Footer';
 import Location from './components/Location';
 import Testimonials from './components/Testimonials';
 import IconLoop from './components/LoopUsage'; 
+import CreditorLoop from './components/CreditorLoop'; 
 
 function App() {
   return (
@@ -33,7 +34,7 @@ function App() {
         <HowPage />
       </section>
 
-      {/* <CreditorLoop /> */}
+      <CreditorLoop />
 
       {/* 5. VALIDATION */}
       <section id="reviews">
