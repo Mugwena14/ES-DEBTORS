@@ -69,7 +69,7 @@ const AdminLayout = () => {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Admin Access</p>
-              <p className="text-sm font-bold text-gray-900">M. Langwani</p>
+              <p className="text-sm font-bold text-gray-900">ES MAKOFANE</p>
             </div>
             <div className="w-12 h-12 bg-gray-900 border-2 border-[#00B4D8] flex items-center justify-center text-[#00B4D8] font-black">
               MK
