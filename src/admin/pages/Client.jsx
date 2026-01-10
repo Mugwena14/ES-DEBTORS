@@ -235,7 +235,7 @@ const Clients = () => {
                           {activeMenuId === client._id && (
                             <div 
                               ref={menuRef}
-                              className="absolute right-0 bottom-full w-32 bg-white shadow-2xl border border-gray-100 z-[70] flex flex-col items-start overflow-hidden animate-in fade-in slide-in-from-bottom-2"
+                              className="absolute right-0 bottom-full -mb-2 w-32 bg-white shadow-2xl border border-gray-100 z-[70] flex flex-col items-start overflow-hidden animate-in fade-in slide-in-from-bottom-2"
                             >
                               <button 
                                 onClick={() => openEditModal(client)}
