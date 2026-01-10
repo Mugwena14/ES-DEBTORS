@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Send, Clock, CheckCircle, Mail, Upload, FileText, RefreshCw } from 'lucide-react';
+import { Send, Clock, CheckCircle, Mail, FileText, RefreshCw, AlertTriangle, X } from 'lucide-react';
+import { Link } from 'react-router-dom'; // Ensure react-router-dom is installed
 
 const Documents = () => {
   const [clientId, setClientId] = useState('');
@@ -8,8 +9,11 @@ const Documents = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  
+  // Modal State for "ID Not Found"
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorDetails, setErrorDetails] = useState('');
 
-  // Constants
   const API_BASE_URL = 'https://debtors-backend.onrender.com/api/admin';
   const creditorEmails = {
     "ABSA": "mlangaviclyde@gmail.com",
@@ -20,7 +24,6 @@ const Documents = () => {
   };
   const creditors = Object.keys(creditorEmails);
 
-  // 1. Fetch Request Logs
   const fetchLogs = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/logs`);
@@ -34,7 +37,6 @@ const Documents = () => {
     fetchLogs();
   }, []);
 
-  // 2. Handle Sending the Request
   const handleRequest = async () => {
     if (!clientId || !selectedCreditor) {
       return alert("Please enter a Client ID and select a Creditor.");
@@ -55,13 +57,18 @@ const Documents = () => {
         fetchLogs(); 
       }
     } catch (err) {
-      alert(err.response?.data?.message || "The server is waking up. Please try again in 30 seconds.");
+      // Trigger the Modal if 404 is returned
+      if (err.response?.status === 404) {
+        setErrorDetails(clientId);
+        setShowErrorModal(true);
+      } else {
+        alert(err.response?.data?.message || "The server is waking up. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // 3. Handle Manual Upload
   const handleFileUpload = async (requestId, file) => {
     const formData = new FormData();
     formData.append('paidUpLetter', file);
@@ -73,11 +80,51 @@ const Documents = () => {
         fetchLogs();
       }
     } catch (err) {
-      alert("Upload failed. Please check file format.");
+      alert("Upload failed.");
     }
   };
 
-  // SUCCESS STATE VIEW
+  // --- UI COMPONENTS ---
+
+  const IDNotFoundModal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white w-full max-w-md p-8 shadow-2xl relative border-t-8 border-red-500">
+        <button 
+          onClick={() => setShowErrorModal(false)}
+          className="absolute top-4 right-4 text-gray-400 hover:text-black"
+        >
+          <X size={24} />
+        </button>
+        
+        <div className="text-center">
+          <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="text-red-600" size={32} />
+          </div>
+          <h2 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-2">ID Not Found</h2>
+          <p className="text-gray-600 mb-6">
+            The ID Number <span className="font-mono font-bold text-red-600">{errorDetails}</span> does not exist in our database. 
+            Please add this client manually first.
+          </p>
+          
+          <div className="flex flex-col gap-3">
+            <Link 
+              to="/admin/clients" 
+              className="bg-gray-900 text-white font-bold py-4 px-6 uppercase tracking-widest text-xs hover:bg-[#00B4D8] transition-all"
+            >
+              Go to Clients Page
+            </Link>
+            <button 
+              onClick={() => setShowErrorModal(false)}
+              className="text-gray-400 font-bold uppercase tracking-widest text-[10px] hover:text-gray-600"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   if (submitted) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -85,14 +132,10 @@ const Documents = () => {
           <CheckCircle className="w-16 h-16 text-[#00B4D8] mx-auto mb-4" />
           <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Request Dispatched</h2>
           <p className="text-gray-400 text-sm font-medium">
-            The request for <strong>{selectedCreditor}</strong> has been sent via Brevo. The log has been updated to 'Pending'.
+            The request for <strong>{selectedCreditor}</strong> has been sent.
           </p>
           <button 
-            onClick={() => {
-              setSubmitted(false);
-              setClientId('');
-              setSelectedCreditor('');
-            }}
+            onClick={() => { setSubmitted(false); setClientId(''); setSelectedCreditor(''); }}
             className="mt-8 bg-[#00B4D8] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
           >
             Create New Request
@@ -103,7 +146,9 @@ const Documents = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="relative space-y-8 animate-in fade-in duration-500">
+      {showErrorModal && <IDNotFoundModal />}
+
       {/* ACTION PANEL */}
       <div className="bg-[#111827] p-8 shadow-2xl border-b-4 border-[#00B4D8]">
         <div className="flex justify-between items-center mb-6">
