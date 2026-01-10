@@ -102,7 +102,7 @@ const Documents = () => {
           </div>
           <h2 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-2">ID Not Found</h2>
           <p className="text-gray-600 mb-6">
-            The ID Number <span className="font-mono font-bold text-red-600">{errorDetails}</span> does not exist in our database. 
+            The ID Number <span className="font-mono font-bold text-red-600">{errorDetails}</span> does not exist in the database. 
             Please add this client manually first.
           </p>
           
