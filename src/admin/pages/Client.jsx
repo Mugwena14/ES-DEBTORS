@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Added useRef
 import axios from 'axios';
 import { Search, ChevronDown, ChevronUp, MoreVertical, FileText, Mail, UserPlus, Loader2, X, Phone, Edit3, Trash2 } from 'lucide-react';
 
@@ -6,10 +6,13 @@ const Clients = () => {
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState(null);
-  const [activeMenuId, setActiveMenuId] = useState(null); // Tracks open edit/delete menu
+  const [activeMenuId, setActiveMenuId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   
+  // Ref for click-outside logic
+  const menuRef = useRef(null);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -25,6 +28,17 @@ const Clients = () => {
 
   const clientsPerPage = 10;
   const API_URL = 'https://debtors-backend.onrender.com/api/clients';
+
+  // --- NEW: Click Outside Logic ---
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchClients = async () => {
     try {
@@ -42,7 +56,6 @@ const Clients = () => {
     fetchClients();
   }, []);
 
-  // Handles both Create and Update
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -52,7 +65,6 @@ const Clients = () => {
       } else {
         await axios.post(API_URL, formData);
       }
-      
       setIsModalOpen(false);
       resetForm();
       fetchClients();
@@ -64,13 +76,13 @@ const Clients = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this client? This cannot be undone.")) {
+    if (window.confirm("Are you sure you want to delete this client?")) {
       try {
         await axios.delete(`${API_URL}/${id}`);
         fetchClients();
         setActiveMenuId(null);
       } catch (err) {
-        alert("Failed to delete client");
+        alert("Failed to delete client. Please check backend route.");
       }
     }
   };
@@ -112,7 +124,7 @@ const Clients = () => {
       
       {/* MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg shadow-2xl border-t-8 border-[#00B4D8] animate-in zoom-in duration-200">
             <div className="p-6 border-b flex justify-between items-center">
               <h3 className="font-black uppercase tracking-widest text-gray-900">
@@ -128,8 +140,8 @@ const Clients = () => {
                     value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-gray-400">Phone Number (Required)</label>
-                  <input required type="text" placeholder="e.g. +27..." className="w-full p-3 bg-gray-50 border text-sm outline-none focus:border-[#00B4D8]" 
+                  <label className="text-[10px] font-bold uppercase text-gray-400">Phone Number</label>
+                  <input required type="text" className="w-full p-3 bg-gray-50 border text-sm outline-none focus:border-[#00B4D8]" 
                     value={formData.phoneNumber} onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})} />
                 </div>
               </div>
@@ -163,7 +175,6 @@ const Clients = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
         <button 
           onClick={() => { resetForm(); setIsModalOpen(true); }}
           className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#111827] text-[#00B4D8] px-8 py-3 font-bold text-xs uppercase tracking-widest hover:bg-[#00B4D8] hover:text-white transition-all"
@@ -211,15 +222,21 @@ const Clients = () => {
                         
                         <div className="relative">
                           <button 
-                            onClick={() => setActiveMenuId(activeMenuId === client._id ? null : client._id)}
+                            onClick={(e) => {
+                                e.stopPropagation(); // Prevents immediate close from handleClickOutside
+                                setActiveMenuId(activeMenuId === client._id ? null : client._id);
+                            }}
                             className="text-gray-400 hover:text-gray-900 p-2"
                           >
                             <MoreVertical size={20}/>
                           </button>
                           
-                          {/* ACTION POPOVER */}
+                          {/* UPDATED ACTION POPOVER */}
                           {activeMenuId === client._id && (
-                            <div className="absolute right-0 bottom-full mb-2 w-32 bg-white shadow-xl border border-gray-100 z-50 flex flex-col items-start overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                            <div 
+                              ref={menuRef}
+                              className="absolute right-0 bottom-full mb-2 w-32 bg-white shadow-2xl border border-gray-100 z-[70] flex flex-col items-start overflow-hidden animate-in fade-in slide-in-from-bottom-2"
+                            >
                               <button 
                                 onClick={() => openEditModal(client)}
                                 className="w-full flex items-center gap-2 px-4 py-3 text-[10px] font-bold uppercase text-gray-600 hover:bg-gray-50 hover:text-[#00B4D8] transition-colors"
@@ -238,7 +255,7 @@ const Clients = () => {
                       </div>
                     </td>
                   </tr>
-
+                  {/* Expanded Section (Email, WhatsApp, etc) */}
                   {expandedId === client._id && (
                     <tr className="bg-gray-50/50">
                       <td colSpan="3" className="px-10 py-8 border-l-4 border-[#00B4D8]">
@@ -247,7 +264,7 @@ const Clients = () => {
                             <Mail className="text-[#00B4D8]" size={18}/>
                             <div>
                               <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Email</p>
-                              <p className="text-sm font-semibold text-gray-800">{client.email || 'No email provided'}</p>
+                              <p className="text-sm font-semibold text-gray-800">{client.email || 'No email'}</p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
@@ -262,15 +279,12 @@ const Clients = () => {
                             <div>
                               <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">ID Document</p>
                               {client.documents?.length > 0 ? (
-                                <a href={`https://debtors-backend.onrender.com/${client.documents[0].url}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 hover:underline">View Document</a>
+                                <a href={`https://debtors-backend.onrender.com/${client.documents[0].url}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 hover:underline">View</a>
                               ) : (
-                                <p className="text-sm text-gray-400 italic">No document uploaded</p>
+                                <p className="text-sm text-gray-400 italic">None</p>
                               )}
                             </div>
                           </div>
-                        </div>
-                        <div className="mt-6 pt-6 border-t border-gray-200">
-                          <button className="bg-[#111827] text-white text-[10px] font-bold uppercase px-4 py-2 hover:bg-[#00B4D8] transition-colors">Generate Statement</button>
                         </div>
                       </td>
                     </tr>
@@ -283,7 +297,7 @@ const Clients = () => {
           </tbody>
         </table>
         
-        {/* PAGINATION SECTION REMAINS THE SAME */}
+        {/* PAGINATION */}
         <div className="p-6 bg-gray-50 flex justify-between items-center border-t border-gray-100">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</p>
           <div className="flex gap-2">
