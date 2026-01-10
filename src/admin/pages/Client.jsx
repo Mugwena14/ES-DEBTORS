@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, ChevronDown, ChevronUp, MoreVertical, FileText, Mail, Fingerprint, UserPlus, Loader2, X, Phone, User } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, MoreVertical, FileText, Mail, UserPlus, Loader2, X, Phone, Edit3, Trash2 } from 'lucide-react';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [activeMenuId, setActiveMenuId] = useState(null); // Tracks open edit/delete menu
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -39,21 +42,57 @@ const Clients = () => {
     fetchClients();
   }, []);
 
-  const handleAddUser = async (e) => {
+  // Handles both Create and Update
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await axios.post(API_URL, formData);
-      if (res.data.success) {
-        setIsModalOpen(false);
-        setFormData({ name: '', email: '', idNumber: '', phoneNumber: '', accountStatus: 'Active' });
-        fetchClients(); // Refresh list
+      if (isEditMode) {
+        await axios.put(`${API_URL}/${selectedClientId}`, formData);
+      } else {
+        await axios.post(API_URL, formData);
       }
+      
+      setIsModalOpen(false);
+      resetForm();
+      fetchClients();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to add client");
+      alert(err.response?.data?.message || "Operation failed");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this client? This cannot be undone.")) {
+      try {
+        await axios.delete(`${API_URL}/${id}`);
+        fetchClients();
+        setActiveMenuId(null);
+      } catch (err) {
+        alert("Failed to delete client");
+      }
+    }
+  };
+
+  const openEditModal = (client) => {
+    setIsEditMode(true);
+    setSelectedClientId(client._id);
+    setFormData({
+      name: client.name || '',
+      email: client.email || '',
+      idNumber: client.idNumber || '',
+      phoneNumber: client.phoneNumber || '',
+      accountStatus: client.accountStatus || 'Active'
+    });
+    setIsModalOpen(true);
+    setActiveMenuId(null);
+  };
+
+  const resetForm = () => {
+    setFormData({ name: '', email: '', idNumber: '', phoneNumber: '', accountStatus: 'Active' });
+    setIsEditMode(false);
+    setSelectedClientId(null);
   };
 
   const filteredClients = clients.filter(client => 
@@ -71,15 +110,17 @@ const Clients = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       
-      {/* ADD USER MODAL */}
+      {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg shadow-2xl border-t-8 border-[#00B4D8] animate-in zoom-in duration-200">
             <div className="p-6 border-b flex justify-between items-center">
-              <h3 className="font-black uppercase tracking-widest text-gray-900">Add New Client</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-black"><X size={20}/></button>
+              <h3 className="font-black uppercase tracking-widest text-gray-900">
+                {isEditMode ? 'Edit Client' : 'Add New Client'}
+              </h3>
+              <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="text-gray-400 hover:text-black"><X size={20}/></button>
             </div>
-            <form onSubmit={handleAddUser} className="p-6 space-y-4">
+            <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase text-gray-400">Full Name</label>
@@ -103,7 +144,7 @@ const Clients = () => {
                   value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
               </div>
               <button disabled={isSubmitting} type="submit" className="w-full bg-[#111827] text-[#00B4D8] font-black py-4 uppercase tracking-[0.2em] text-xs hover:bg-[#00B4D8] hover:text-white transition-all">
-                {isSubmitting ? "Saving to Database..." : "Create Client Profile"}
+                {isSubmitting ? "Processing..." : isEditMode ? "Update Client Profile" : "Create Client Profile"}
               </button>
             </form>
           </div>
@@ -124,7 +165,7 @@ const Clients = () => {
         </div>
         
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { resetForm(); setIsModalOpen(true); }}
           className="w-full md:w-auto flex items-center justify-center gap-2 bg-[#111827] text-[#00B4D8] px-8 py-3 font-bold text-xs uppercase tracking-widest hover:bg-[#00B4D8] hover:text-white transition-all"
         >
           <UserPlus size={16} /> Add Client
@@ -167,7 +208,33 @@ const Clients = () => {
                         <button onClick={() => toggleExpand(client._id)} className={`p-2 transition-all ${expandedId === client._id ? 'text-[#00B4D8] bg-blue-50' : 'text-gray-400 hover:text-[#00B4D8]'}`}>
                           {expandedId === client._id ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
                         </button>
-                        <button className="text-gray-400 hover:text-gray-900 p-2"><MoreVertical size={20}/></button>
+                        
+                        <div className="relative">
+                          <button 
+                            onClick={() => setActiveMenuId(activeMenuId === client._id ? null : client._id)}
+                            className="text-gray-400 hover:text-gray-900 p-2"
+                          >
+                            <MoreVertical size={20}/>
+                          </button>
+                          
+                          {/* ACTION POPOVER */}
+                          {activeMenuId === client._id && (
+                            <div className="absolute right-0 bottom-full mb-2 w-32 bg-white shadow-xl border border-gray-100 z-50 flex flex-col items-start overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                              <button 
+                                onClick={() => openEditModal(client)}
+                                className="w-full flex items-center gap-2 px-4 py-3 text-[10px] font-bold uppercase text-gray-600 hover:bg-gray-50 hover:text-[#00B4D8] transition-colors"
+                              >
+                                <Edit3 size={14}/> Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDelete(client._id)}
+                                className="w-full flex items-center gap-2 px-4 py-3 text-[10px] font-bold uppercase text-red-500 hover:bg-red-50 transition-colors border-t border-gray-50"
+                              >
+                                <Trash2 size={14}/> Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -216,7 +283,7 @@ const Clients = () => {
           </tbody>
         </table>
         
-        {/* PAGINATION */}
+        {/* PAGINATION SECTION REMAINS THE SAME */}
         <div className="p-6 bg-gray-50 flex justify-between items-center border-t border-gray-100">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Page {currentPage} of {totalPages || 1}</p>
           <div className="flex gap-2">
