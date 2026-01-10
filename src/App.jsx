@@ -1,56 +1,34 @@
 import React from 'react';
-import HomePage from './pages/homePage';
-import AboutPage from './pages/aboutPage';
-import ServicesPage from './pages/servicesPage';
-import HowPage from './pages/howPage';
-import Footer from './components/Footer';
-import Location from './components/Location';
-import Testimonials from './components/Testimonials';
-import IconLoop from './components/LoopUsage'; 
-import CreditorLoop from './components/CreditorLoop'; 
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+// Public Landing Page
+import LandingPage from './LandingPage';
+
+// Admin Components
+import AdminLayout from './admin/AdminLayout';
+import Dashboard from './admin/pages/Dashboard'
+import Clients from './admin/pages/Client';
+import Documents from './admin/pages/Documents';
 
 function App() {
   return (
-    <>
-      {/* 1. HERO SECTION */}
-      <section id="home">
-        <HomePage />
-      </section>
+    <Router>
+      <Routes>
+        {/* PUBLIC WEBSITE ROUTE */}
+        <Route path="/" element={<LandingPage />} />
 
-      {/* 2. IDENTITY & SOCIAL PROOF */}
-      <section id="about">
-        <AboutPage />
-      </section>
-      
-      <IconLoop />
-
-      {/* 3. CORE SOLUTIONS */}
-      <section id="services">
-        <ServicesPage />
-      </section>
-
-      {/* 4. THE PROCESS & NETWORK */}
-      <section id="how">
-        <HowPage />
-      </section>
-
-      <CreditorLoop />
-
-      {/* 5. VALIDATION */}
-      <section id="reviews">
-        <Testimonials />
-      </section>
-
-      {/* 6. PHYSICAL PRESENCE */}
-      <section>
-        <Location />
-      </section>
-
-      {/* 7. CONVERSION & LINKS */}
-      <section id="contacts">
-        <Footer />
-      </section>
-    </>
+        {/* ADMIN PORTAL ROUTES */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="clients" element={<Clients />} />
+          <Route path="docs" element={<Documents />} />
+          
+          {/* Placeholders for future routes */}
+          <Route path="docs" element={<div className="p-10 text-gray-400 uppercase font-bold">Documents Module coming soon...</div>} />
+          <Route path="settings" element={<div className="p-10 text-gray-400 uppercase font-bold">Settings Module coming soon...</div>} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
 
