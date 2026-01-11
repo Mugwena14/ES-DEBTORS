@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { Download, FileText, Plus, Trash2, ReceiptText } from 'lucide-react';
+import { Download, Plus, Trash2, ReceiptText } from 'lucide-react';
 import InvoiceTemplate from '../components/InvoiceTemplate';
 
 const InvoiceGenerator = () => {
@@ -114,12 +114,8 @@ const InvoiceGenerator = () => {
               fileName={`MKH_Invoice_${data.clientName || 'Draft'}.pdf`}
               className="group flex w-full md:w-auto items-center justify-center gap-3 bg-[#111827] px-10 py-5 text-xs font-black uppercase tracking-widest text-white hover:bg-[#00B4D8] transition-all"
             >
-              {({ loading }) => (
-                <>
-                  <Download size={18} className={loading ? "animate-bounce" : ""}/>
-                  {loading ? 'Preparing PDF...' : 'Generate Invoice'}
-                </>
-              )}
+              <Download size={18} />
+              Generate Invoice
             </PDFDownloadLink>
           </footer>
         </div>
