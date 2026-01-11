@@ -6,9 +6,10 @@ import LandingPage from './LandingPage';
 
 // Admin Components
 import AdminLayout from './admin/AdminLayout';
-import Dashboard from './admin/pages/Dashboard'
+import Dashboard from './admin/pages/Dashboard';
 import Clients from './admin/pages/Client';
 import Documents from './admin/pages/Documents';
+import InvoiceGenerator from './admin/pages/InvoiceGenerator'; // Ensure path is correct
 
 function App() {
   return (
@@ -19,13 +20,17 @@ function App() {
 
         {/* ADMIN PORTAL ROUTES */}
         <Route path="/admin" element={<AdminLayout />}>
+          {/* Dashboard is the default view for /admin */}
           <Route index element={<Dashboard />} />
+          
+          {/* Client Management */}
           <Route path="clients" element={<Clients />} />
+          
+          {/* Document Requests & Logs */}
           <Route path="docs" element={<Documents />} />
           
-          {/* Placeholders for future routes */}
-          <Route path="docs" element={<div className="p-10 text-gray-400 uppercase font-bold">Documents Module coming soon...</div>} />
-          <Route path="settings" element={<div className="p-10 text-gray-400 uppercase font-bold">Settings Module coming soon...</div>} />
+          {/* Billing & Invoice Generation */}
+          <Route path="invoices" element={<InvoiceGenerator />} />
         </Route>
       </Routes>
     </Router>

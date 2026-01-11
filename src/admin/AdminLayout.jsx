@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, CreditCard, LogOut, ChevronRight } from 'lucide-react';
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -9,12 +9,12 @@ const AdminLayout = () => {
     { name: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={20} /> },
     { name: 'Clients', path: '/admin/clients', icon: <Users size={20} /> },
     { name: 'Documents', path: '/admin/docs', icon: <FileText size={20} /> },
-    { name: 'Settings', path: '/admin/settings', icon: <Settings size={20} /> },
+    { name: 'Invoices', path: '/admin/invoices', icon: <CreditCard size={20} /> },
   ];
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans">
-      {/* SIDEBAR: Following the #111827 background of your Hero */}
+      {/* SIDEBAR */}
       <aside className="w-68 bg-[#111827] text-white flex flex-col shadow-2xl">
         <div className="p-8">
           <div 
