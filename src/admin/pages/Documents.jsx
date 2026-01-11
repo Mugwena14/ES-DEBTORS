@@ -279,14 +279,6 @@ const Documents = () => {
                   </td>
                   <td className="px-8 py-4 text-center">
                     <div className="flex justify-center items-center">
-                    {req.status === 'Received' ? (
-                      <a 
-                        href={`mailto:${req.client?.email}?subject=Your Paid-up Letter from ${req.creditorName}&body=Hello ${req.client?.name}, please find your document attached.`}
-                        className="bg-gray-900 text-[#00B4D8] text-[10px] px-4 py-2 font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#00B4D8] hover:text-white transition-all"
-                      >
-                        <Upload size={14} /> Upload Document
-                      </a>
-                    ) : (
                       <div className="relative" ref={activeMenuId === req._id ? menuRef : null}>
                         <button 
                           onClick={() => setActiveMenuId(activeMenuId === req._id ? null : req._id)}
@@ -297,12 +289,28 @@ const Documents = () => {
 
                         {activeMenuId === req._id && (
                           <div className="absolute right-full top-0 mr-2 w-44 bg-white border border-gray-100 shadow-xl z-50 animate-in fade-in slide-in-from-right-2 duration-200">
-                            <button 
-                              onClick={() => confirmMarkReceived(req._id)}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-gray-600 hover:bg-green-50 hover:text-green-600 transition-colors border-b border-gray-50"
-                            >
-                              <Check size={16} /> Mark Received
-                            </button>
+                            
+                            {/* 1. Upload Option (Only shows if Received) */}
+                            {req.status === 'Received' && (
+                              <a 
+                                href={`mailto:${req.client?.email}?subject=Your Paid-up Letter from ${req.creditorName}&body=Hello ${req.client?.name}, please find your document attached.`}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-[#00B4D8] hover:bg-blue-50 transition-colors border-b border-gray-50"
+                              >
+                                <Upload size={16} /> Upload Document
+                              </a>
+                            )}
+
+                            {/* 2. Mark Received Option (Only shows if NOT Received) */}
+                            {req.status !== 'Received' && (
+                              <button 
+                                onClick={() => confirmMarkReceived(req._id)}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-gray-600 hover:bg-green-50 hover:text-green-600 transition-colors border-b border-gray-50"
+                              >
+                                <Check size={16} /> Mark Received
+                              </button>
+                            )}
+
+                            {/* 3. Delete Option (Always available) */}
                             <button 
                               onClick={() => confirmDelete(req._id)}
                               className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 transition-colors"
@@ -312,15 +320,14 @@ const Documents = () => {
                           </div>
                         )}
                       </div>
-                    )}
                     </div>
                   </td>
                 </tr>
               )) : (
                 <tr>
-                    <td colSpan="4" className="px-8 py-12 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">
-                        No requests found
-                    </td>
+                  <td colSpan="4" className="px-8 py-12 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">
+                    No requests found
+                  </td>
                 </tr>
               )}
             </tbody>
