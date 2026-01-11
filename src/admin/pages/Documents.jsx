@@ -227,7 +227,7 @@ const Documents = () => {
                         </button>
 
                         {activeMenuId === req._id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 shadow-xl z-50 animate-in slide-in-from-top-2 duration-200">
+                          <div className="absolute right-0 w-48 bg-white border border-gray-100 shadow-xl z-50 animate-in slide-in-from-top-2 duration-200">
                             <button 
                               onClick={() => handleMarkAsReceived(req._id)}
                               className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-gray-600 hover:bg-green-50 hover:text-green-600 transition-colors"
