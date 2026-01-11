@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Send, Clock, CheckCircle, Mail, FileText, RefreshCw, AlertTriangle, X, MoreVertical, Check } from 'lucide-react';
+import { Send, Clock, CheckCircle, Mail, RefreshCw, AlertTriangle, X, MoreVertical, Check, Trash2, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import ConfirmationModal from '../components/ConfirmationModal'; 
 
 const Documents = () => {
   const [clientId, setClientId] = useState('');
@@ -14,6 +15,15 @@ const Documents = () => {
   
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
+
+  // --- NEW: Modal State ---
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'danger',
+    onConfirm: () => {}
+  });
 
   const API_BASE_URL = 'https://debtors-backend.onrender.com/api/admin';
   const creditorEmails = {
@@ -48,9 +58,19 @@ const Documents = () => {
     fetchLogs();
   }, []);
 
+  // --- Modal Helpers ---
+  const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
+
   const handleRequest = async () => {
     if (!clientId || !selectedCreditor) {
-      return alert("Please enter a Client ID and select a Creditor.");
+      setModalConfig({
+        isOpen: true,
+        title: "Incomplete Form",
+        message: "Please enter a Client ID and select a Creditor before proceeding.",
+        type: "danger",
+        onConfirm: closeModal
+      });
+      return;
     }
     setLoading(true);
     try {
@@ -69,11 +89,30 @@ const Documents = () => {
         setErrorDetails(clientId);
         setShowErrorModal(true);
       } else {
-        alert(err.response?.data?.message || "Error processing request.");
+        setModalConfig({
+          isOpen: true,
+          title: "Request Error",
+          message: err.response?.data?.message || "Error processing request.",
+          type: "danger",
+          onConfirm: closeModal
+        });
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  const confirmMarkReceived = (requestId) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm Status Change",
+      message: "Are you sure you want to mark this document as Received?",
+      type: "info", 
+      onConfirm: () => {
+        handleMarkAsReceived(requestId);
+        closeModal();
+      }
+    });
   };
 
   const handleMarkAsReceived = async (requestId) => {
@@ -86,7 +125,32 @@ const Documents = () => {
         setActiveMenuId(null);
       }
     } catch (err) {
-      alert("Failed to update status.");
+      console.error("Failed to update status.");
+    }
+  };
+
+  const confirmDelete = (requestId) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Delete Record",
+      message: "This action cannot be undone. Are you sure you want to delete this request record?",
+      type: "danger", 
+      onConfirm: () => {
+        handleDeleteRequest(requestId);
+        closeModal();
+      }
+    });
+  };
+
+  const handleDeleteRequest = async (requestId) => {
+    try {
+      const res = await axios.delete(`${API_BASE_URL}/delete-request/${requestId}`);
+      if (res.data.success) {
+        fetchLogs();
+        setActiveMenuId(null);
+      }
+    } catch (err) {
+      console.error("Delete failed.");
     }
   };
 
@@ -119,12 +183,12 @@ const Documents = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#00B4D8] animate-in fade-in zoom-in duration-300">
           <CheckCircle className="w-16 h-16 text-[#00B4D8] mx-auto mb-4" />
-          <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Request Dispatched</h2>
+          <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Request Sent</h2>
           <button 
             onClick={() => { setSubmitted(false); setClientId(''); setSelectedCreditor(''); }}
             className="mt-8 bg-[#00B4D8] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
           >
-            Create New Request
+            Done
           </button>
         </div>
       </div>
@@ -133,6 +197,16 @@ const Documents = () => {
 
   return (
     <div className="relative space-y-8 animate-in fade-in duration-500">
+      {/* --- ADDED MODAL COMPONENT --- */}
+      <ConfirmationModal 
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onConfirm={modalConfig.onConfirm}
+        onCancel={closeModal}
+        type={modalConfig.type}
+      />
+
       {showErrorModal && <IDNotFoundModal />}
 
       <div className="bg-[#111827] p-8 shadow-2xl border-b-4 border-[#00B4D8]">
@@ -207,11 +281,10 @@ const Documents = () => {
                     <div className="flex justify-center items-center">
                     {req.status === 'Received' ? (
                       <a 
-                        href={`https://debtors-backend.onrender.com/${req.documentUrl}`} 
-                        target="_blank" rel="noreferrer"
+                        href={`mailto:${req.client?.email}?subject=Your Paid-up Letter from ${req.creditorName}&body=Hello ${req.client?.name}, please find your document attached.`}
                         className="bg-gray-900 text-[#00B4D8] text-[10px] px-4 py-2 font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#00B4D8] hover:text-white transition-all"
                       >
-                        <FileText size={14} /> View Document
+                        <Upload size={14} /> Upload Document
                       </a>
                     ) : (
                       <div className="relative" ref={activeMenuId === req._id ? menuRef : null}>
@@ -223,13 +296,18 @@ const Documents = () => {
                         </button>
 
                         {activeMenuId === req._id && (
-                          /* UPDATED POSITIONING: right-full aligns it to the left of the button */
-                          <div className="absolute right-full top-0 mr-2 w-40 bg-white border border-gray-100 shadow-xl z-50 animate-in fade-in slide-in-from-right-2 duration-200">
+                          <div className="absolute right-full top-0 mr-2 w-44 bg-white border border-gray-100 shadow-xl z-50 animate-in fade-in slide-in-from-right-2 duration-200">
                             <button 
-                              onClick={() => handleMarkAsReceived(req._id)}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-gray-600 hover:bg-green-50 hover:text-green-600 transition-colors"
+                              onClick={() => confirmMarkReceived(req._id)}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-gray-600 hover:bg-green-50 hover:text-green-600 transition-colors border-b border-gray-50"
                             >
                               <Check size={16} /> Mark Received
+                            </button>
+                            <button 
+                              onClick={() => confirmDelete(req._id)}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-red-500 hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 size={16} /> Delete Record
                             </button>
                           </div>
                         )}
