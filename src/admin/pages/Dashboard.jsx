@@ -25,6 +25,18 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
+  // Helper function to parse MongoDB's $date object or standard ISO strings
+  const formatMongoDate = (dateField) => {
+    if (!dateField) return 'N/A';
+    // Check if it's the {$date: ...} format or a direct string
+    const dateValue = dateField.$date ? dateField.$date : dateField;
+    const dateObj = new Date(dateValue);
+    
+    return isNaN(dateObj.getTime()) 
+      ? 'Invalid Date' 
+      : dateObj.toLocaleDateString('en-ZA'); // South African format: YYYY/MM/DD
+  };
+
   const cards = [
     { label: 'Active Clients', val: stats.activeClients, icon: <Users className="text-[#00B4D8]" />, trend: 'Steady', color: 'border-[#00B4D8]' },
     { label: 'Pending Requests', val: stats.pendingDocs, icon: <Clock className="text-orange-500" />, trend: 'Needs Action', color: 'border-orange-500' },
@@ -59,7 +71,7 @@ const Dashboard = () => {
           <h3 className="text-white font-black uppercase tracking-widest text-xs flex items-center gap-2">
             <ArrowUpRight size={16} className="text-[#00B4D8]" /> Recent System Logs
           </h3>
-          <Link to="/admin/documents" className="text-[#00B4D8] text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
+          <Link to="/admin/docs" className="text-[#00B4D8] text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
             View All Requests
           </Link>
         </div>
@@ -77,7 +89,7 @@ const Dashboard = () => {
             <tbody className="divide-y divide-gray-100">
               {recentRequests.length > 0 ? (
                 recentRequests.map((req) => (
-                  <tr key={req._id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={req._id?.$oid || req._id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-8 py-4">
                       <p className="font-bold text-gray-900 text-sm">{req.client?.name || 'Unknown'}</p>
                       <p className="text-[10px] font-mono text-gray-400">{req.idNumber}</p>
@@ -95,7 +107,8 @@ const Dashboard = () => {
                     <td className="px-8 py-4 text-gray-400">
                       <div className="flex items-center gap-1 text-[10px] font-bold uppercase">
                         <Calendar size={12} />
-                        {new Date(req.createdAt).toLocaleDateString('en-ZA')}
+                        {/* Checking dateRequested first, then createdAt as fallback */}
+                        {formatMongoDate(req.dateRequested || req.createdAt)}
                       </div>
                     </td>
                   </tr>
