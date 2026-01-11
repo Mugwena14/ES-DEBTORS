@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { Download, FileText, Plus, Trash2, ReceiptText } from 'lucide-react';
-import InvoiceTemplate from './InvoiceTemplate';
+import InvoiceTemplate from '../components/InvoiceTemplate';
 
 const InvoiceGenerator = () => {
   const [data, setData] = useState({

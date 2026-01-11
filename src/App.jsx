@@ -9,7 +9,7 @@ import AdminLayout from './admin/AdminLayout';
 import Dashboard from './admin/pages/Dashboard';
 import Clients from './admin/pages/Client';
 import Documents from './admin/pages/Documents';
-import InvoiceGenerator from './admin/pages/InvoiceGenerator'; // Ensure path is correct
+import InvoiceGenerator from './admin/pages/InvoiceGenerator'; 
 
 function App() {
   return (
