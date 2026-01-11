@@ -137,7 +137,7 @@ const Documents = () => {
       />
 
       {/* FILTER BAR SECTION */}
-      <div className="space-y-2">
+      <div>
         <FilterBar 
           searchTerm={searchTerm} 
           setSearchTerm={setSearchTerm} 
