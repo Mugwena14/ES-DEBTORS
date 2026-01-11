@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Send, Clock, CheckCircle, Mail, FileText, RefreshCw, AlertTriangle, X } from 'lucide-react';
-import { Link } from 'react-router-dom'; // Ensure react-router-dom is installed
+import { Send, Clock, CheckCircle, Mail, FileText, RefreshCw, AlertTriangle, X, MoreVertical, Check } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Documents = () => {
   const [clientId, setClientId] = useState('');
@@ -9,8 +9,9 @@ const Documents = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [activeMenuId, setActiveMenuId] = useState(null);
+  const menuRef = useRef(null);
   
-  // Modal State for "ID Not Found"
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
 
@@ -23,6 +24,17 @@ const Documents = () => {
     "FNB": "settlements@fnb.co.za"
   };
   const creditors = Object.keys(creditorEmails);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchLogs = async () => {
     try {
@@ -57,68 +69,50 @@ const Documents = () => {
         fetchLogs(); 
       }
     } catch (err) {
-      // Trigger the Modal if 404 is returned
       if (err.response?.status === 404) {
         setErrorDetails(clientId);
         setShowErrorModal(true);
       } else {
-        alert(err.response?.data?.message || "The server is waking up. Please try again.");
+        alert(err.response?.data?.message || "Error processing request.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileUpload = async (requestId, file) => {
-    const formData = new FormData();
-    formData.append('paidUpLetter', file);
-
+  // NEW: Update status to Received
+  const handleMarkAsReceived = async (requestId) => {
     try {
-      const res = await axios.put(`${API_BASE_URL}/upload-document/${requestId}`, formData);
+      const res = await axios.put(`${API_BASE_URL}/update-status/${requestId}`, {
+        status: 'Received'
+      });
       if (res.data.success) {
-        alert("Paid-up letter successfully linked to client record.");
         fetchLogs();
+        setActiveMenuId(null);
       }
     } catch (err) {
-      alert("Upload failed.");
+      alert("Failed to update status. Make sure the backend route exists.");
     }
   };
-
-  // --- UI COMPONENTS ---
 
   const IDNotFoundModal = () => (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white w-full max-w-md p-8 shadow-2xl relative border-t-8 border-red-500">
-        <button 
-          onClick={() => setShowErrorModal(false)}
-          className="absolute top-4 right-4 text-gray-400 hover:text-black"
-        >
+        <button onClick={() => setShowErrorModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black">
           <X size={24} />
         </button>
-        
         <div className="text-center">
           <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="text-red-600" size={32} />
           </div>
           <h2 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-2">ID Not Found</h2>
           <p className="text-gray-600 mb-6">
-            The ID Number <span className="font-mono font-bold text-red-600">{errorDetails}</span> does not exist in the database. 
-            Please add this client manually first.
+            The ID Number <span className="font-mono font-bold text-red-600">{errorDetails}</span> does not exist. 
           </p>
-          
           <div className="flex flex-col gap-3">
-            <Link 
-              to="/admin/clients" 
-              className="bg-gray-900 text-white font-bold py-4 px-6 uppercase tracking-widest text-xs hover:bg-[#00B4D8] transition-all"
-            >
+            <Link to="/admin/clients" className="bg-gray-900 text-white font-bold py-4 px-6 uppercase tracking-widest text-xs hover:bg-[#00B4D8] transition-all">
               Go to Clients Page
             </Link>
-            <button 
-              onClick={() => setShowErrorModal(false)}
-              className="text-gray-400 font-bold uppercase tracking-widest text-[10px] hover:text-gray-600"
-            >
-              Dismiss
-            </button>
           </div>
         </div>
       </div>
@@ -131,9 +125,6 @@ const Documents = () => {
         <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#00B4D8] animate-in fade-in zoom-in duration-300">
           <CheckCircle className="w-16 h-16 text-[#00B4D8] mx-auto mb-4" />
           <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Request Dispatched</h2>
-          <p className="text-gray-400 text-sm font-medium">
-            The request for <strong>{selectedCreditor}</strong> has been sent.
-          </p>
           <button 
             onClick={() => { setSubmitted(false); setClientId(''); setSelectedCreditor(''); }}
             className="mt-8 bg-[#00B4D8] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
@@ -149,7 +140,6 @@ const Documents = () => {
     <div className="relative space-y-8 animate-in fade-in duration-500">
       {showErrorModal && <IDNotFoundModal />}
 
-      {/* ACTION PANEL */}
       <div className="bg-[#111827] p-8 shadow-2xl border-b-4 border-[#00B4D8]">
         <div className="flex justify-between items-center mb-6">
             <h2 className="text-white font-black uppercase tracking-widest flex items-center gap-2">
@@ -164,30 +154,23 @@ const Documents = () => {
           <div className="space-y-2">
             <label className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Client ID Number</label>
             <input 
-              type="text" 
-              className="w-full bg-white/5 border border-gray-700 p-3 text-white focus:border-[#00B4D8] outline-none font-mono"
-              placeholder="e.g. 9201015000081"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+              type="text" className="w-full bg-white/5 border border-gray-700 p-3 text-white focus:border-[#00B4D8] outline-none font-mono"
+              placeholder="e.g. 9201015000081" value={clientId} onChange={(e) => setClientId(e.target.value)}
             />
           </div>
           <div className="space-y-2">
             <label className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Select Creditor</label>
             <select 
               className="w-full bg-white/5 border border-gray-700 p-3 text-white focus:border-[#00B4D8] outline-none appearance-none"
-              value={selectedCreditor}
-              onChange={(e) => setSelectedCreditor(e.target.value)}
+              value={selectedCreditor} onChange={(e) => setSelectedCreditor(e.target.value)}
             >
               <option value="" className="text-black">-- Select Creditor --</option>
-              {creditors.map(c => (
-                <option key={c} value={c} className="text-black">{c}</option>
-              ))}
+              {creditors.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
             </select>
           </div>
           <div className="flex items-end">
             <button 
-              disabled={loading}
-              onClick={handleRequest}
+              disabled={loading} onClick={handleRequest}
               className="w-full bg-[#00B4D8] text-white font-black py-3 uppercase tracking-tighter hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:bg-gray-800 disabled:text-gray-600"
               style={{ clipPath: 'polygon(0 0, 100% 0, 95% 100%, 0% 100%)' }}
             >
@@ -197,7 +180,6 @@ const Documents = () => {
         </div>
       </div>
 
-      {/* REQUEST LOGS */}
       <div className="bg-white shadow-sm overflow-hidden border border-gray-100">
         <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center text-gray-900 font-black uppercase tracking-widest text-xs">
           Recent Document Activity
@@ -226,26 +208,34 @@ const Documents = () => {
                       {req.status}
                     </span>
                   </td>
-                  <td className="px-8 py-4 text-center">
+                  <td className="px-8 py-4 text-center relative">
                     {req.status === 'Received' ? (
                       <a 
                         href={`https://debtors-backend.onrender.com/${req.documentUrl}`} 
-                        target="_blank" 
-                        rel="noreferrer"
+                        target="_blank" rel="noreferrer"
                         className="bg-gray-900 text-[#00B4D8] text-[10px] px-4 py-2 font-black uppercase tracking-widest flex items-center justify-center gap-2 w-fit mx-auto hover:bg-[#00B4D8] hover:text-white transition-all"
                       >
                         <FileText size={14} /> View Document
                       </a>
                     ) : (
-                      <div className="relative overflow-hidden group">
-                        <input 
-                          type="file" 
-                          className="absolute inset-0 opacity-0 cursor-pointer z-10" 
-                          onChange={(e) => handleFileUpload(req._id, e.target.files[0])}
-                        />
-                        <button className="text-[#00B4D8] border-2 border-[#00B4D8] text-[10px] px-4 py-2 font-black uppercase tracking-widest group-hover:bg-[#00B4D8] group-hover:text-white transition-all">
-                          Upload Reply
+                      <div className="relative inline-block" ref={activeMenuId === req._id ? menuRef : null}>
+                        <button 
+                          onClick={() => setActiveMenuId(activeMenuId === req._id ? null : req._id)}
+                          className="p-2 text-gray-400 hover:text-black transition-colors"
+                        >
+                          <MoreVertical size={20} />
                         </button>
+
+                        {activeMenuId === req._id && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 shadow-xl z-50 animate-in slide-in-from-top-2 duration-200">
+                            <button 
+                              onClick={() => handleMarkAsReceived(req._id)}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-gray-600 hover:bg-green-50 hover:text-green-600 transition-colors"
+                            >
+                              <Check size={16} /> Mark Received
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </td>
@@ -253,7 +243,7 @@ const Documents = () => {
               )) : (
                 <tr>
                     <td colSpan="4" className="px-8 py-12 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">
-                        No requests found in system
+                        No requests found
                     </td>
                 </tr>
               )}
