@@ -25,7 +25,6 @@ const Documents = () => {
   };
   const creditors = Object.keys(creditorEmails);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -53,7 +52,6 @@ const Documents = () => {
     if (!clientId || !selectedCreditor) {
       return alert("Please enter a Client ID and select a Creditor.");
     }
-
     setLoading(true);
     try {
       const payload = {
@@ -61,9 +59,7 @@ const Documents = () => {
         creditorName: selectedCreditor,
         creditorEmail: creditorEmails[selectedCreditor]
       };
-
       const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
-      
       if (res.data.success) {
         setSubmitted(true);
         fetchLogs(); 
@@ -80,7 +76,6 @@ const Documents = () => {
     }
   };
 
-  // NEW: Update status to Received
   const handleMarkAsReceived = async (requestId) => {
     try {
       const res = await axios.put(`${API_BASE_URL}/update-status/${requestId}`, {
@@ -91,7 +86,7 @@ const Documents = () => {
         setActiveMenuId(null);
       }
     } catch (err) {
-      alert("Failed to update status. Make sure the backend route exists.");
+      alert("Failed to update status.");
     }
   };
 
@@ -208,26 +203,28 @@ const Documents = () => {
                       {req.status}
                     </span>
                   </td>
-                  <td className="px-8 py-4 text-center relative">
+                  <td className="px-8 py-4 text-center">
+                    <div className="flex justify-center items-center">
                     {req.status === 'Received' ? (
                       <a 
                         href={`https://debtors-backend.onrender.com/${req.documentUrl}`} 
                         target="_blank" rel="noreferrer"
-                        className="bg-gray-900 text-[#00B4D8] text-[10px] px-4 py-2 font-black uppercase tracking-widest flex items-center justify-center gap-2 w-fit mx-auto hover:bg-[#00B4D8] hover:text-white transition-all"
+                        className="bg-gray-900 text-[#00B4D8] text-[10px] px-4 py-2 font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#00B4D8] hover:text-white transition-all"
                       >
                         <FileText size={14} /> View Document
                       </a>
                     ) : (
-                      <div className="relative inline-block" ref={activeMenuId === req._id ? menuRef : null}>
+                      <div className="relative" ref={activeMenuId === req._id ? menuRef : null}>
                         <button 
                           onClick={() => setActiveMenuId(activeMenuId === req._id ? null : req._id)}
-                          className="p-2 text-gray-400 hover:text-black transition-colors"
+                          className="p-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
                         >
                           <MoreVertical size={20} />
                         </button>
 
                         {activeMenuId === req._id && (
-                          <div className="absolute right-0 -mt-3 w-48 bg-white border border-gray-100 shadow-xl z-50 animate-in slide-in-from-top-2 duration-200">
+                          /* UPDATED POSITIONING: right-full aligns it to the left of the button */
+                          <div className="absolute right-full top-0 mr-2 w-40 bg-white border border-gray-100 shadow-xl z-50 animate-in fade-in slide-in-from-right-2 duration-200">
                             <button 
                               onClick={() => handleMarkAsReceived(req._id)}
                               className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-gray-600 hover:bg-green-50 hover:text-green-600 transition-colors"
@@ -238,6 +235,7 @@ const Documents = () => {
                         )}
                       </div>
                     )}
+                    </div>
                   </td>
                 </tr>
               )) : (
