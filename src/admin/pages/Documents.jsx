@@ -18,7 +18,7 @@ const Documents = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   
-  // NEW: Filter States
+  // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   
@@ -136,15 +136,19 @@ const Documents = () => {
         loading={loading} fetchLogs={fetchLogs} 
       />
 
-      {/* Filter Section */}
-      <FilterBar 
-        searchTerm={searchTerm} 
-        setSearchTerm={setSearchTerm} 
-        statusFilter={statusFilter} 
-        setStatusFilter={setStatusFilter} 
-      />
+      {/* FILTER BAR SECTION */}
+      <div className="space-y-2">
+        <FilterBar 
+          searchTerm={searchTerm} 
+          setSearchTerm={setSearchTerm} 
+          statusFilter={statusFilter} 
+          setStatusFilter={setStatusFilter} 
+        />
+        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest pl-2">
+          Showing {filteredRequests.length} of {requests.length} Requests
+        </p>
+      </div>
 
-      {/* Pass the filteredRequests instead of original requests */}
       <DocumentTable 
         requests={filteredRequests} 
         activeMenuId={activeMenuId} 
