@@ -49,7 +49,7 @@ const QuoteForm = () => {
 
     try {
       // Updated to your live Render Backend URL
-      const response = await fetch('https://debtors-backend.onrender.com/api/quote', {
+      const response = await fetch('https://mkh-debtors-backend.onrender.com/api/quote', {
         method: 'POST',
         body: data,
         // Fetch automatically handles multipart/form-data headers for FormData objects
