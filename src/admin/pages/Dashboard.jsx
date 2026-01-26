@@ -11,7 +11,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const res = await axios.get('https://debtors-backend.onrender.com/api/admin/stats');
+        const res = await axios.get('https://mkh-debtors-backend.onrender.com/api/admin/stats');
         if (res.data.success) {
           setStats(res.data.stats);
           setRecentRequests(res.data.recentRequests);

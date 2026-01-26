@@ -25,7 +25,7 @@ const Documents = () => {
   const menuRef = useRef(null);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => {} });
 
-  const API_BASE_URL = 'https://debtors-backend.onrender.com/api/admin';
+  const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
   const creditorEmails = {
     "ABSA": "mlangaviclyde@gmail.com",
     "Capitec": "settlements@capitecbank.co.za",

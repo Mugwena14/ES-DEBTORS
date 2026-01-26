@@ -6,7 +6,7 @@ import ClientRow from '../components/ClientRow';
 import ClientModal from '../components/ClientModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 
-const API_URL = 'https://debtors-backend.onrender.com/api/clients';
+const API_URL = 'https://mkh-debtors-backend.onrender.com/api/clients';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
