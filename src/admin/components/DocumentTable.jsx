@@ -22,7 +22,7 @@ const DocumentTable = ({ requests, activeMenuId, setActiveMenuId, menuRef, onMar
             {requests.length > 0 ? requests.map((req) => (
               <tr key={req._id} className="hover:bg-gray-50/80 transition-colors">
                 <td className="px-8 py-4">
-                  <p className="font-bold text-gray-900">{req.client?.name || 'In Database'}</p>
+                  <p className="font-bold text-gray-900">{req.clientName}</p>
                   <p className="text-[10px] text-gray-400 uppercase font-mono">{req.idNumber}</p>
                 </td>
                 <td className="px-8 py-4 text-gray-600 font-semibold">{req.creditorName}</td>

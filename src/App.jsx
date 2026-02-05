@@ -8,8 +8,12 @@ import LandingPage from './LandingPage';
 import AdminLayout from './admin/AdminLayout';
 import Dashboard from './admin/pages/Dashboard';
 import Clients from './admin/pages/Client';
-import Documents from './admin/pages/Documents';
+import PaidUp from './admin/pages/PaidUp';
+import Prescription from './admin/pages/Prescription'; 
+import DebtReview from './admin/pages/DebtReview'; 
 import InvoiceGenerator from './admin/pages/InvoiceGenerator'; 
+import Defaults from './admin/pages/Defaults';
+import Requests from './admin/pages/Requests';
 
 function App() {
   return (
@@ -26,8 +30,14 @@ function App() {
           {/* Client Management */}
           <Route path="clients" element={<Clients />} />
           
-          {/* Document Requests & Logs */}
-          <Route path="docs" element={<Documents />} />
+          <Route path="requests" element={<Requests/>} />
+          {/* Document Requests & Logs - Nested Routes */}
+          <Route path="docs">
+            <Route path="paid-up" element={<PaidUp/>} />
+            <Route path="prescription" element={<Prescription/>} />
+            <Route path="debt-review" element={<DebtReview/>} />
+            <Route path="defaults" element={<Defaults/>} />
+          </Route>
           
           {/* Billing & Invoice Generation */}
           <Route path="invoices" element={<InvoiceGenerator />} />

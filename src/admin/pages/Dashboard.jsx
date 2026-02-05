@@ -11,10 +11,25 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const res = await axios.get('https://mkh-debtors-backend.onrender.com/api/admin/stats');
-        if (res.data.success) {
-          setStats(res.data.stats);
-          setRecentRequests(res.data.recentRequests);
+        setLoading(true);
+        
+        // Fetching both stats and clients in parallel
+        const [statsRes, clientsRes] = await Promise.all([
+          axios.get('https://mkh-debtors-backend.onrender.com/api/admin/stats'),
+          axios.get('https://mkh-debtors-backend.onrender.com/api/clients') // Your getClients route
+        ]);
+
+        if (statsRes.data.success) {
+          // Calculate active clients from the clients array
+          const allClients = clientsRes.data.data || [];
+          const activeCount = allClients.filter(c => c.accountStatus === 'Active').length;
+
+          setStats({
+            ...statsRes.data.stats,
+            activeClients: activeCount // Override with our fresh count
+          });
+          
+          setRecentRequests(statsRes.data.recentRequests);
         }
       } catch (err) {
         console.error("Error loading dashboard data", err);
@@ -25,20 +40,15 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Helper function to parse MongoDB's $date object or standard ISO strings
   const formatMongoDate = (dateField) => {
     if (!dateField) return 'N/A';
-    // Check if it's the {$date: ...} format or a direct string
     const dateValue = dateField.$date ? dateField.$date : dateField;
     const dateObj = new Date(dateValue);
-    
-    return isNaN(dateObj.getTime()) 
-      ? 'Invalid Date' 
-      : dateObj.toLocaleDateString('en-ZA'); // South African format: YYYY/MM/DD
+    return isNaN(dateObj.getTime()) ? 'Invalid Date' : dateObj.toLocaleDateString('en-ZA');
   };
 
   const cards = [
-    { label: 'Active Clients', val: stats.activeClients, icon: <Users className="text-[#00B4D8]" />, trend: 'Steady', color: 'border-[#00B4D8]' },
+    { label: 'Active Clients', val: stats.activeClients, icon: <Users className="text-[#00B4D8]" />, trend: 'Live Data', color: 'border-[#00B4D8]' },
     { label: 'Pending Requests', val: stats.pendingDocs, icon: <Clock className="text-orange-500" />, trend: 'Needs Action', color: 'border-orange-500' },
     { label: 'Completed Letters', val: stats.completedDocs, icon: <FileCheck className="text-green-500" />, trend: 'Recent Wins', color: 'border-green-500' },
   ];
@@ -51,7 +61,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
-      {/* STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {cards.map((c) => (
           <div key={c.label} className={`bg-white p-8 shadow-sm border-l-4 ${c.color} group hover:shadow-xl transition-all`}>
@@ -91,7 +100,7 @@ const Dashboard = () => {
                 recentRequests.map((req) => (
                   <tr key={req._id?.$oid || req._id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-8 py-4">
-                      <p className="font-bold text-gray-900 text-sm">{req.client?.name || 'Unknown'}</p>
+                      <p className="font-bold text-gray-900 text-sm">{req.client?.name || req.clientName || 'Unknown'}</p>
                       <p className="text-[10px] font-mono text-gray-400">{req.idNumber}</p>
                     </td>
                     <td className="px-8 py-4 text-xs font-bold text-gray-600 italic">
@@ -99,7 +108,7 @@ const Dashboard = () => {
                     </td>
                     <td className="px-8 py-4">
                       <span className={`text-[9px] font-black px-2 py-1 uppercase tracking-tighter rounded ${
-                        req.status === 'Received' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                        req.status === 'Received' || req.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                       }`}>
                         {req.status}
                       </span>
@@ -107,7 +116,6 @@ const Dashboard = () => {
                     <td className="px-8 py-4 text-gray-400">
                       <div className="flex items-center gap-1 text-[10px] font-bold uppercase">
                         <Calendar size={12} />
-                        {/* Checking dateRequested first, then createdAt as fallback */}
                         {formatMongoDate(req.dateRequested || req.createdAt)}
                       </div>
                     </td>

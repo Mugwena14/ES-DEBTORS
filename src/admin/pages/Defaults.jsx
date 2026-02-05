@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { CheckCircle, AlertTriangle, X } from 'lucide-react';
+import { CheckCircle, AlertTriangle, X, OctagonAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -8,7 +8,7 @@ import RequestForm from '../components/RequestForm';
 import DocumentTable from '../components/DocumentTable';
 import FilterBar from '../components/FilterBar';
 
-const Documents = () => {
+const Defaults = () => {
   const [clientId, setClientId] = useState('');
   const [selectedCreditor, setSelectedCreditor] = useState('');
   const [requests, setRequests] = useState([]);
@@ -23,20 +23,29 @@ const Documents = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   
   const menuRef = useRef(null);
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => {} });
+  const [modalConfig, setModalConfig] = useState({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    type: 'danger', 
+    onConfirm: () => {} 
+  });
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
+  
+  // Focused on Collections and Bureau Updating Departments
   const creditorEmails = {
-    "ABSA": "mlangaviclyde@gmail.com",
-    "Capitec": "settlements@capitecbank.co.za",
-    "Standard Bank": "paidup@standardbank.co.za",
-    "Nedbank": "collections@nedbank.co.za",
-    "FNB": "settlements@fnb.co.za"
+    "ABSA Collections": "collections.management@absa.co.za",
+    "Capitec Collections": "centralcollections@capitecbank.co.za",
+    "Standard Bank Recoveries": "recoveries@standardbank.co.za",
+    "Nedbank Collections": "collections@nedbank.co.za",
+    "FNB Credit Bureau": "bureauqueries@fnb.co.za"
   };
   const creditors = Object.keys(creditorEmails);
 
-  // Filter Logic
+  // Filter Logic - Specific to Default Removal/Correction
   const filteredRequests = requests.filter((req) => {
+    const isDefaultType = req.requestType === 'Defaults';
     const matchesSearch = 
       req.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (req.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -44,7 +53,7 @@ const Documents = () => {
     const matchesStatus = 
       statusFilter === 'All' || req.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    return isDefaultType && matchesSearch && matchesStatus;
   });
 
   useEffect(() => {
@@ -68,12 +77,23 @@ const Documents = () => {
 
   const handleRequest = async () => {
     if (!clientId || !selectedCreditor) {
-      setModalConfig({ isOpen: true, title: "Incomplete Form", message: "Please enter a Client ID and select a Creditor.", type: "danger", onConfirm: closeModal });
+      setModalConfig({ 
+        isOpen: true, 
+        title: "Missing Information", 
+        message: "Please enter the Client ID and select the Creditor responsible for the Default.", 
+        type: "danger", 
+        onConfirm: closeModal 
+      });
       return;
     }
     setLoading(true);
     try {
-      const payload = { idNumber: clientId, creditorName: selectedCreditor, creditorEmail: creditorEmails[selectedCreditor] };
+      const payload = { 
+        idNumber: clientId, 
+        creditorName: selectedCreditor, 
+        creditorEmail: creditorEmails[selectedCreditor],
+        requestType: 'Defaults' 
+      };
       const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
       if (res.data.success) { setSubmitted(true); fetchLogs(); }
     } catch (err) {
@@ -83,7 +103,7 @@ const Documents = () => {
 
   const confirmMarkReceived = (requestId) => {
     setModalConfig({
-      isOpen: true, title: "Confirm Status Change", message: "Mark this document as Received?", type: "info",
+      isOpen: true, title: "Confirm Update", message: "Confirm that the default status update has been received?", type: "info",
       onConfirm: async () => {
         await axios.put(`${API_BASE_URL}/update-status/${requestId}`, { status: 'Received' });
         fetchLogs(); setActiveMenuId(null); closeModal();
@@ -93,7 +113,7 @@ const Documents = () => {
 
   const confirmDelete = (requestId) => {
     setModalConfig({
-      isOpen: true, title: "Delete Record", message: "This action cannot be undone.", type: "danger",
+      isOpen: true, title: "Purge Record", message: "Delete this record from default logs?", type: "danger",
       onConfirm: async () => {
         await axios.delete(`${API_BASE_URL}/delete-request/${requestId}`);
         fetchLogs(); setActiveMenuId(null); closeModal();
@@ -103,10 +123,15 @@ const Documents = () => {
 
   if (submitted) return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#00B4D8]">
-        <CheckCircle className="w-16 h-16 text-[#00B4D8] mx-auto mb-4" />
-        <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Request Sent</h2>
-        <button onClick={() => { setSubmitted(false); setClientId(''); setSelectedCreditor(''); }} className="mt-8 bg-[#00B4D8] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Done</button>
+      <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#DC2626]">
+        <OctagonAlert className="w-16 h-16 text-[#DC2626] mx-auto mb-4" />
+        <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Correction Request Sent</h2>
+        <button 
+          onClick={() => { setSubmitted(false); setClientId(''); setSelectedCreditor(''); }} 
+          className="mt-8 bg-[#DC2626] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+        >
+          Done
+        </button>
       </div>
     </div>
   );
@@ -117,23 +142,36 @@ const Documents = () => {
       
       {showErrorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md p-8 shadow-2xl relative border-t-8 border-red-500">
+          <div className="bg-white w-full max-w-md p-8 shadow-2xl relative border-t-8 border-[#DC2626]">
             <button onClick={() => setShowErrorModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black"><X size={24} /></button>
             <div className="text-center">
-              <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="text-red-600" size={32} /></div>
-              <h2 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-2">ID Not Found</h2>
-              <p className="text-gray-600 mb-6">ID: <span className="font-mono font-bold text-red-600">{errorDetails}</span> does not exist.</p>
-              <Link to="/admin/clients" className="block bg-gray-900 text-white font-bold py-4 px-6 uppercase tracking-widest text-xs">Go to Clients</Link>
+              <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="text-[#DC2626]" size={32} /></div>
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-2">Record Error</h2>
+              <p className="text-gray-600 mb-6">ID <span className="font-mono font-bold text-[#DC2626]">{errorDetails}</span> could not be found for default mitigation.</p>
+              <Link to="/admin/clients" className="block bg-gray-900 text-white font-bold py-4 px-6 uppercase tracking-widest text-xs">Verify Client</Link>
             </div>
           </div>
         </div>
       )}
 
+      {/* Hero Header */}
+      <div className="bg-white p-6 border-l-4 border-[#DC2626] shadow-sm">
+        <h1 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Credit Repair</h1>
+        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Defaults on Accounts</h2>
+      </div>
+
       <RequestForm 
-        clientId={clientId} setClientId={setClientId} 
-        selectedCreditor={selectedCreditor} setSelectedCreditor={setSelectedCreditor} 
-        creditors={creditors} handleRequest={handleRequest} 
-        loading={loading} fetchLogs={fetchLogs} 
+        clientId={clientId} 
+        setClientId={setClientId} 
+        selectedCreditor={selectedCreditor} 
+        setSelectedCreditor={setSelectedCreditor} 
+        creditors={creditors} 
+        handleRequest={handleRequest} 
+        loading={loading} 
+        fetchLogs={fetchLogs} 
+        title="Resolve Account Default"
+        buttonLabel="Send Correction Request"
+        accentColor="#DC2626"
       />
 
       {/* FILTER BAR SECTION */}
@@ -144,8 +182,8 @@ const Documents = () => {
           statusFilter={statusFilter} 
           setStatusFilter={setStatusFilter} 
         />
-        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest pl-2">
-          Showing {filteredRequests.length} of {requests.length} Requests
+        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest pl-2 mt-2">
+          Showing {filteredRequests.length} Default Removal Requests
         </p>
       </div>
 
@@ -161,4 +199,4 @@ const Documents = () => {
   );
 };
 
-export default Documents;
+export default Defaults;

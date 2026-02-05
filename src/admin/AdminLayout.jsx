@@ -1,21 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, CreditCard, LogOut, ChevronRight } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Users, 
+  FileText, 
+  CreditCard, 
+  LogOut, 
+  ChevronRight, 
+  ChevronDown,
+  ClipboardList
+} from 'lucide-react';
 
 const AdminLayout = () => {
   const location = useLocation();
+  const [isDocsOpen, setIsDocsOpen] = useState(false);
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={20} /> },
     { name: 'Clients', path: '/admin/clients', icon: <Users size={20} /> },
-    { name: 'Documents', path: '/admin/docs', icon: <FileText size={20} /> },
+    { name: 'Requests', path: '/admin/requests', icon: <ClipboardList size={20} /> },
+    { 
+      name: 'Documents', 
+      path: '#', 
+      icon: <FileText size={20} />,
+      isDropdown: true,
+      subLinks: [
+        { name: 'Paid Up', path: '/admin/docs/paid-up' },
+        { name: 'Prescription', path: '/admin/docs/prescription' },
+        { name: 'Debt Review', path: '/admin/docs/debt-review' },
+        { name: 'Defaults', path: '/admin/docs/defaults' },
+      ]
+    },
     { name: 'Invoices', path: '/admin/invoices', icon: <CreditCard size={20} /> },
   ];
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans">
       {/* SIDEBAR */}
-      <aside className="w-68 bg-[#111827] text-white flex flex-col shadow-2xl">
+      <aside className="w-68 bg-[#111827] text-white flex flex-col shadow-2xl overflow-y-auto">
         <div className="p-8">
           <div 
             className="bg-[#00B4D8] text-white px-4 py-2 font-black text-lg tracking-tighter"
@@ -28,6 +50,41 @@ const AdminLayout = () => {
         <nav className="flex-1 px-4 space-y-2">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
+            
+            if (item.isDropdown) {
+              return (
+                <div key={item.name} className="flex flex-col">
+                  <button
+                    onClick={() => setIsDocsOpen(!isDocsOpen)}
+                    className={`flex items-center justify-between px-4 py-3 transition-all duration-300 group hover:bg-white/10 text-gray-400 hover:text-[#00B4D8]`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {item.icon}
+                      <span className="font-bold text-sm uppercase tracking-widest">{item.name}</span>
+                    </div>
+                    {isDocsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </button>
+
+                  {/* DROPDOWN SUB-LINKS */}
+                  {isDocsOpen && (
+                    <div className="ml-9 mt-1 flex flex-col space-y-1 border-l-2 border-gray-800">
+                      {item.subLinks.map((sub) => (
+                        <Link
+                          key={sub.name}
+                          to={sub.path}
+                          className={`px-6 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${
+                            location.pathname === sub.path ? 'text-[#00B4D8]' : 'text-gray-500 hover:text-white'
+                          }`}
+                        >
+                          {sub.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={item.name}
@@ -63,7 +120,9 @@ const AdminLayout = () => {
           <div className="flex items-center gap-4">
             <div className="h-1 w-12 bg-[#00B4D8]"></div>
             <h1 className="text-xl font-black text-gray-900 uppercase tracking-tighter">
-              {menuItems.find(m => m.path === location.pathname)?.name || 'Control Panel'}
+              {location.pathname.includes('/docs') 
+                ? 'Documents' 
+                : (menuItems.find(m => m.path === location.pathname)?.name || 'Control Panel')}
             </h1>
           </div>
           <div className="flex items-center gap-4">
