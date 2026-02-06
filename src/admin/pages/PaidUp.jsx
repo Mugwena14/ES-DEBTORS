@@ -10,7 +10,8 @@ import FilterBar from '../components/FilterBar';
 
 const PaidUp = () => {
   const [clientId, setClientId] = useState('');
-  const [selectedCreditor, setSelectedCreditor] = useState('');
+  // Changed from single string to an array starting with one empty field
+  const [emails, setEmails] = useState(['']); 
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -18,35 +19,22 @@ const PaidUp = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   
-  // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   
   const menuRef = useRef(null);
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => {} });
+  const [modalConfig, setModalConfig] = useState({ 
+    isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => {} 
+  });
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
-  const creditorEmails = {
-    "ABSA": "mlangaviclyde@gmail.com",
-    "Capitec": "settlements@capitecbank.co.za",
-    "Standard Bank": "paidup@standardbank.co.za",
-    "Nedbank": "collections@nedbank.co.za",
-    "FNB": "settlements@fnb.co.za"
-  };
-  const creditors = Object.keys(creditorEmails);
 
-  // Filter Logic - Only showing requests marked as 'Paid-Up'
   const filteredRequests = requests.filter((req) => {
-    // Only show if it matches the type (optional, depending on your DB structure)
     const isPaidUpType = !req.requestType || req.requestType === 'Paid-Up';
-    
     const matchesSearch = 
       req.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (req.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = 
-      statusFilter === 'All' || req.status === statusFilter;
-
+    const matchesStatus = statusFilter === 'All' || req.status === statusFilter;
     return isPaidUpType && matchesSearch && matchesStatus;
   });
 
@@ -70,28 +58,39 @@ const PaidUp = () => {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
   const handleRequest = async () => {
-    if (!clientId || !selectedCreditor) {
+    // Filter out empty strings from the array
+    const recipientList = emails.filter(email => email.trim() !== '');
+
+    if (!clientId || recipientList.length === 0) {
       setModalConfig({ 
         isOpen: true, 
         title: "Incomplete Form", 
-        message: "Please enter a Client ID and select a Creditor.", 
+        message: "Please provide a Client ID and at least one valid email address.", 
         type: "danger", 
         onConfirm: closeModal 
       });
       return;
     }
+
     setLoading(true);
     try {
       const payload = { 
         idNumber: clientId, 
-        creditorName: selectedCreditor, 
-        creditorEmail: creditorEmails[selectedCreditor],
+        // Sending the array of emails to the backend
+        creditorEmails: recipientList, 
         requestType: 'Paid-Up' 
       };
+      
       const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
-      if (res.data.success) { setSubmitted(true); fetchLogs(); }
+      if (res.data.success) { 
+        setSubmitted(true); 
+        fetchLogs(); 
+      }
     } catch (err) {
-      if (err.response?.status === 404) { setErrorDetails(clientId); setShowErrorModal(true); }
+      if (err.response?.status === 404) { 
+        setErrorDetails(clientId); 
+        setShowErrorModal(true); 
+      }
     } finally { setLoading(false); }
   };
 
@@ -119,9 +118,14 @@ const PaidUp = () => {
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#00B4D8]">
         <CheckCircle className="w-16 h-16 text-[#00B4D8] mx-auto mb-4" />
-        <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Request Sent</h2>
+        <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Requests Sent</h2>
+        <p className="text-gray-400 text-sm">Sent to {emails.filter(e => e).length} recipients.</p>
         <button 
-          onClick={() => { setSubmitted(false); setClientId(''); setSelectedCreditor(''); }} 
+          onClick={() => { 
+            setSubmitted(false); 
+            setClientId(''); 
+            setEmails(['']); // Reset to one empty field
+          }} 
           className="mt-8 bg-[#00B4D8] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
           Done
@@ -148,13 +152,11 @@ const PaidUp = () => {
         </div>
       )}
 
-      {/* REUSABLE FORM CALL */}
       <RequestForm 
         clientId={clientId} 
         setClientId={setClientId} 
-        selectedCreditor={selectedCreditor} 
-        setSelectedCreditor={setSelectedCreditor} 
-        creditors={creditors} 
+        emails={emails}           // Updated Prop
+        setEmails={setEmails}     // Updated Prop
         handleRequest={handleRequest} 
         loading={loading} 
         fetchLogs={fetchLogs} 
@@ -163,7 +165,6 @@ const PaidUp = () => {
         accentColor="#00B4D8"
       />
 
-      {/* FILTER BAR SECTION */}
       <div>
         <FilterBar 
           searchTerm={searchTerm} 

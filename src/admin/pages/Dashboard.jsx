@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Users, Clock, FileCheck, ArrowUpRight, Loader2, Calendar } from 'lucide-react';
+import { Users, Clock, FileCheck, ArrowUpRight, Loader2, Calendar, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -8,28 +8,32 @@ const Dashboard = () => {
   const [recentRequests, setRecentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
-        // Fetching both stats and clients in parallel
-        const [statsRes, clientsRes] = await Promise.all([
-          axios.get('https://mkh-debtors-backend.onrender.com/api/admin/stats'),
-          axios.get('https://mkh-debtors-backend.onrender.com/api/clients') // Your getClients route
+        // Parallel fetch: Stats, Clients, and WhatsApp (Chatbot) Requests
+        const [statsRes, clientsRes, whatsappRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/stats`),
+          axios.get('https://mkh-debtors-backend.onrender.com/api/clients'),
+          axios.get(`${API_BASE_URL}/whatsapp-requests`)
         ]);
 
         if (statsRes.data.success) {
-          // Calculate active clients from the clients array
           const allClients = clientsRes.data.data || [];
           const activeCount = allClients.filter(c => c.accountStatus === 'Active').length;
 
           setStats({
             ...statsRes.data.stats,
-            activeClients: activeCount // Override with our fresh count
+            activeClients: activeCount 
           });
           
-          setRecentRequests(statsRes.data.recentRequests);
+          // Show the 5 most recent Chatbot requests instead of manual doc logs
+          const latestChatRequests = (whatsappRes.data.data || []).slice(0, 5);
+          setRecentRequests(latestChatRequests);
         }
       } catch (err) {
         console.error("Error loading dashboard data", err);
@@ -42,8 +46,7 @@ const Dashboard = () => {
 
   const formatMongoDate = (dateField) => {
     if (!dateField) return 'N/A';
-    const dateValue = dateField.$date ? dateField.$date : dateField;
-    const dateObj = new Date(dateValue);
+    const dateObj = new Date(dateField);
     return isNaN(dateObj.getTime()) ? 'Invalid Date' : dateObj.toLocaleDateString('en-ZA');
   };
 
@@ -74,14 +77,14 @@ const Dashboard = () => {
         ))}
       </div>
       
-      {/* RECENT ACTIVITY TABLE */}
+      {/* CHATBOT ACTIVITY TABLE */}
       <div className="bg-white shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 bg-[#111827] flex justify-between items-center">
           <h3 className="text-white font-black uppercase tracking-widest text-xs flex items-center gap-2">
-            <ArrowUpRight size={16} className="text-[#00B4D8]" /> Recent System Logs
+            <MessageSquare size={16} className="text-[#00B4D8]" /> Recent Chatbot Requests
           </h3>
-          <Link to="/admin/docs" className="text-[#00B4D8] text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
-            View All Requests
+          <Link to="/admin/requests" className="text-[#00B4D8] text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">
+            View Requests
           </Link>
         </div>
         
@@ -89,8 +92,8 @@ const Dashboard = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Client</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Creditor</th>
+                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Client / Phone</th>
+                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Inquiry Type</th>
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Date</th>
               </tr>
@@ -98,17 +101,17 @@ const Dashboard = () => {
             <tbody className="divide-y divide-gray-100">
               {recentRequests.length > 0 ? (
                 recentRequests.map((req) => (
-                  <tr key={req._id?.$oid || req._id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={req._id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-8 py-4">
-                      <p className="font-bold text-gray-900 text-sm">{req.client?.name || req.clientName || 'Unknown'}</p>
-                      <p className="text-[10px] font-mono text-gray-400">{req.idNumber}</p>
+                      <p className="font-bold text-gray-900 text-sm">{req.clientName}</p>
+                      <p className="text-[10px] font-mono text-[#00B4D8]">{req.clientPhone}</p>
                     </td>
-                    <td className="px-8 py-4 text-xs font-bold text-gray-600 italic">
-                      {req.creditorName}
+                    <td className="px-8 py-4 text-xs font-bold text-gray-600">
+                      <span className="bg-gray-100 px-2 py-1 rounded text-gray-500">{req.requestType}</span>
                     </td>
                     <td className="px-8 py-4">
                       <span className={`text-[9px] font-black px-2 py-1 uppercase tracking-tighter rounded ${
-                        req.status === 'Received' || req.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                        req.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                       }`}>
                         {req.status}
                       </span>
@@ -116,7 +119,7 @@ const Dashboard = () => {
                     <td className="px-8 py-4 text-gray-400">
                       <div className="flex items-center gap-1 text-[10px] font-bold uppercase">
                         <Calendar size={12} />
-                        {formatMongoDate(req.dateRequested || req.createdAt)}
+                        {formatMongoDate(req.createdAt)}
                       </div>
                     </td>
                   </tr>
@@ -124,7 +127,7 @@ const Dashboard = () => {
               ) : (
                 <tr>
                   <td colSpan="4" className="px-8 py-10 text-center text-gray-400 text-xs font-bold uppercase tracking-[0.2em]">
-                    No recent activity detected
+                    No recent chatbot activity
                   </td>
                 </tr>
               )}

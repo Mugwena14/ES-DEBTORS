@@ -10,7 +10,8 @@ import FilterBar from '../components/FilterBar';
 
 const Defaults = () => {
   const [clientId, setClientId] = useState('');
-  const [selectedCreditor, setSelectedCreditor] = useState('');
+  // Now using the emails array for multi-department reach
+  const [emails, setEmails] = useState(['']); 
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -18,30 +19,15 @@ const Defaults = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   
-  // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   
   const menuRef = useRef(null);
   const [modalConfig, setModalConfig] = useState({ 
-    isOpen: false, 
-    title: '', 
-    message: '', 
-    type: 'danger', 
-    onConfirm: () => {} 
+    isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => {} 
   });
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
-  
-  // Focused on Collections and Bureau Updating Departments
-  const creditorEmails = {
-    "ABSA Collections": "collections.management@absa.co.za",
-    "Capitec Collections": "centralcollections@capitecbank.co.za",
-    "Standard Bank Recoveries": "recoveries@standardbank.co.za",
-    "Nedbank Collections": "collections@nedbank.co.za",
-    "FNB Credit Bureau": "bureauqueries@fnb.co.za"
-  };
-  const creditors = Object.keys(creditorEmails);
 
   // Filter Logic - Specific to Default Removal/Correction
   const filteredRequests = requests.filter((req) => {
@@ -50,8 +36,7 @@ const Defaults = () => {
       req.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (req.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = 
-      statusFilter === 'All' || req.status === statusFilter;
+    const matchesStatus = statusFilter === 'All' || req.status === statusFilter;
 
     return isDefaultType && matchesSearch && matchesStatus;
   });
@@ -76,28 +61,36 @@ const Defaults = () => {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
   const handleRequest = async () => {
-    if (!clientId || !selectedCreditor) {
+    const recipientList = emails.filter(email => email.trim() !== '');
+
+    if (!clientId || recipientList.length === 0) {
       setModalConfig({ 
         isOpen: true, 
         title: "Missing Information", 
-        message: "Please enter the Client ID and select the Creditor responsible for the Default.", 
+        message: "Please enter a Client ID and at least one email for the credit bureau/collections department.", 
         type: "danger", 
         onConfirm: closeModal 
       });
       return;
     }
+
     setLoading(true);
     try {
       const payload = { 
         idNumber: clientId, 
-        creditorName: selectedCreditor, 
-        creditorEmail: creditorEmails[selectedCreditor],
+        creditorEmails: recipientList, 
         requestType: 'Defaults' 
       };
       const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
-      if (res.data.success) { setSubmitted(true); fetchLogs(); }
+      if (res.data.success) { 
+        setSubmitted(true); 
+        fetchLogs(); 
+      }
     } catch (err) {
-      if (err.response?.status === 404) { setErrorDetails(clientId); setShowErrorModal(true); }
+      if (err.response?.status === 404) { 
+        setErrorDetails(clientId); 
+        setShowErrorModal(true); 
+      }
     } finally { setLoading(false); }
   };
 
@@ -126,8 +119,13 @@ const Defaults = () => {
       <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#DC2626]">
         <OctagonAlert className="w-16 h-16 text-[#DC2626] mx-auto mb-4" />
         <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Correction Request Sent</h2>
+        <p className="text-gray-400 text-sm">Dispatched to {emails.filter(e => e).length} bureau contacts.</p>
         <button 
-          onClick={() => { setSubmitted(false); setClientId(''); setSelectedCreditor(''); }} 
+          onClick={() => { 
+            setSubmitted(false); 
+            setClientId(''); 
+            setEmails(['']); 
+          }} 
           className="mt-8 bg-[#DC2626] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
           Done
@@ -154,18 +152,11 @@ const Defaults = () => {
         </div>
       )}
 
-      {/* Hero Header */}
-      <div className="bg-white p-6 border-l-4 border-[#DC2626] shadow-sm">
-        <h1 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Credit Repair</h1>
-        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Defaults on Accounts</h2>
-      </div>
-
       <RequestForm 
         clientId={clientId} 
         setClientId={setClientId} 
-        selectedCreditor={selectedCreditor} 
-        setSelectedCreditor={setSelectedCreditor} 
-        creditors={creditors} 
+        emails={emails} 
+        setEmails={setEmails} 
         handleRequest={handleRequest} 
         loading={loading} 
         fetchLogs={fetchLogs} 
@@ -174,7 +165,6 @@ const Defaults = () => {
         accentColor="#DC2626"
       />
 
-      {/* FILTER BAR SECTION */}
       <div>
         <FilterBar 
           searchTerm={searchTerm} 

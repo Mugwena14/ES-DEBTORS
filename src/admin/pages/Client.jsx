@@ -112,7 +112,7 @@ const Clients = () => {
       {/* ADD/EDIT FORM MODAL */}
       <ClientModal 
         isOpen={isModalOpen} isEditMode={isEditMode} formData={formData} 
-        setFormData={setFormData} onSubmit={triggerSubmitConfirm} // Now triggers confirmation first
+        setFormData={setFormData} onSubmit={triggerSubmitConfirm} 
         onClose={() => { setIsModalOpen(false); resetForm(); }} isSubmitting={isSubmitting} 
       />
 
@@ -147,7 +147,7 @@ const Clients = () => {
                 key={client._id} client={client} isExpanded={expandedId === client._id} 
                 onToggleExpand={(id) => setExpandedId(expandedId === id ? null : id)}
                 activeMenuId={activeMenuId} setActiveMenuId={setActiveMenuId}
-                onEdit={openEditModal} onDelete={triggerDeleteConfirm} // Now triggers confirmation first
+                onEdit={openEditModal} onDelete={triggerDeleteConfirm}
               />
             ))}
           </tbody>

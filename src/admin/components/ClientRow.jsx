@@ -1,11 +1,15 @@
 import React, { useRef, useEffect } from 'react';
-import { ChevronDown, ChevronUp, MoreVertical, Mail, Phone, FileText, Edit3, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, MoreVertical, Mail, Phone, Edit3, Trash2 } from 'lucide-react';
 
 const ClientRow = ({ client, isExpanded, onToggleExpand, activeMenuId, setActiveMenuId, onEdit, onDelete }) => {
   const menuRef = useRef(null);
   const isMenuOpen = activeMenuId === client._id;
 
-  // Click outside logic specific to this row's menu
+  // Helper to strip "whatsapp:" prefix
+  const formatPhone = (phone) => {
+    return phone ? phone.replace('whatsapp:', '') : 'No number';
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -23,7 +27,7 @@ const ClientRow = ({ client, isExpanded, onToggleExpand, activeMenuId, setActive
       <tr className="hover:bg-gray-50 transition-colors">
         <td className="px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#00B4D8]/10 text-[#00B4D8] flex items-center justify-center font-bold text-xs">
+            <div className="w-8 h-8 bg-[#00B4D8]/10 text-[#00B4D8] flex items-center justify-center font-bold text-xs rounded-lg">
               {client.name ? client.name.charAt(0) : '?'}
             </div>
             <span className="font-bold text-gray-900">{client.name || 'Unnamed Client'}</span>
@@ -32,7 +36,7 @@ const ClientRow = ({ client, isExpanded, onToggleExpand, activeMenuId, setActive
         <td className="px-6 py-5 text-gray-600 font-mono text-sm">{client.idNumber || 'N/A'}</td>
         <td className="px-6 py-5 text-center">
           <div className="flex justify-center gap-4">
-            <button onClick={() => onToggleExpand(client._id)} className={`p-2 transition-all ${isExpanded ? 'text-[#00B4D8] bg-blue-50' : 'text-gray-400 hover:text-[#00B4D8]'}`}>
+            <button onClick={() => onToggleExpand(client._id)} className={`p-2 transition-all rounded-lg ${isExpanded ? 'text-[#00B4D8] bg-blue-50' : 'text-gray-400 hover:text-[#00B4D8]'}`}>
               {isExpanded ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
             </button>
             
@@ -50,7 +54,7 @@ const ClientRow = ({ client, isExpanded, onToggleExpand, activeMenuId, setActive
               {isMenuOpen && (
                 <div 
                   ref={menuRef}
-                  className="absolute right-0 bottom-full -mb-2 w-32 bg-white shadow-2xl border border-gray-100 z-[70] flex flex-col items-start overflow-hidden animate-in fade-in slide-in-from-bottom-2"
+                  className="absolute right-0 bottom-full mb-2 w-32 bg-white shadow-2xl border border-gray-100 z-[70] flex flex-col items-start overflow-hidden rounded-lg animate-in fade-in slide-in-from-bottom-2"
                 >
                   <button 
                     onClick={() => onEdit(client)}
@@ -86,18 +90,7 @@ const ClientRow = ({ client, isExpanded, onToggleExpand, activeMenuId, setActive
                 <Phone className="text-[#00B4D8]" size={18}/>
                 <div>
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">WhatsApp</p>
-                  <p className="text-sm font-semibold text-gray-800">{client.phoneNumber}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <FileText className="text-[#00B4D8]" size={18}/>
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">ID Document</p>
-                  {client.documents?.length > 0 ? (
-                    <a href={`https://debtors-backend.onrender.com/${client.documents[0].url}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 hover:underline">View</a>
-                  ) : (
-                    <p className="text-sm text-gray-400 italic">None</p>
-                  )}
+                  <p className="text-sm font-semibold text-gray-800">{formatPhone(client.phoneNumber)}</p>
                 </div>
               </div>
             </div>

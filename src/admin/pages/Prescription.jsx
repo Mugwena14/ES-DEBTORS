@@ -10,7 +10,8 @@ import FilterBar from '../components/FilterBar';
 
 const Prescription = () => {
   const [clientId, setClientId] = useState('');
-  const [selectedCreditor, setSelectedCreditor] = useState('');
+  // Changed to emails array to support up to 5/6 recipients
+  const [emails, setEmails] = useState(['']); 
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -18,23 +19,15 @@ const Prescription = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   
-  // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   
   const menuRef = useRef(null);
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => {} });
+  const [modalConfig, setModalConfig] = useState({ 
+    isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => {} 
+  });
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
-  
-  const creditorEmails = {
-    "ABSA Legal": "legal@absa.co.za",
-    "Capitec Legal": "legal@capitecbank.co.za",
-    "Standard Bank Legal": "prescriptions@standardbank.co.za",
-    "Nedbank Legal": "nedbanklegal@nedbank.co.za",
-    "FNB Legal": "fnbprescriptions@fnb.co.za"
-  };
-  const creditors = Object.keys(creditorEmails);
 
   // Filter Logic - Specific to Prescription
   const filteredRequests = requests.filter((req) => {
@@ -43,8 +36,7 @@ const Prescription = () => {
       req.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (req.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = 
-      statusFilter === 'All' || req.status === statusFilter;
+    const matchesStatus = statusFilter === 'All' || req.status === statusFilter;
 
     return isPrescriptionType && matchesSearch && matchesStatus;
   });
@@ -69,28 +61,37 @@ const Prescription = () => {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
   const handleRequest = async () => {
-    if (!clientId || !selectedCreditor) {
+    // Filter valid emails
+    const recipientList = emails.filter(email => email.trim() !== '');
+
+    if (!clientId || recipientList.length === 0) {
       setModalConfig({ 
         isOpen: true, 
         title: "Incomplete Form", 
-        message: "Please enter a Client ID and select a Creditor for Prescription check.", 
+        message: "Please enter a Client ID and at least one Legal Email for Prescription check.", 
         type: "danger", 
         onConfirm: closeModal 
       });
       return;
     }
+
     setLoading(true);
     try {
       const payload = { 
         idNumber: clientId, 
-        creditorName: selectedCreditor, 
-        creditorEmail: creditorEmails[selectedCreditor],
+        creditorEmails: recipientList, // Sending array
         requestType: 'Prescription' 
       };
       const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
-      if (res.data.success) { setSubmitted(true); fetchLogs(); }
+      if (res.data.success) { 
+        setSubmitted(true); 
+        fetchLogs(); 
+      }
     } catch (err) {
-      if (err.response?.status === 404) { setErrorDetails(clientId); setShowErrorModal(true); }
+      if (err.response?.status === 404) { 
+        setErrorDetails(clientId); 
+        setShowErrorModal(true); 
+      }
     } finally { setLoading(false); }
   };
 
@@ -119,8 +120,13 @@ const Prescription = () => {
       <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-amber-500">
         <FileSearch className="w-16 h-16 text-amber-500 mx-auto mb-4" />
         <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Prescription Inquiry Sent</h2>
+        <p className="text-gray-400 text-sm">Sent to {emails.filter(e => e).length} legal departments.</p>
         <button 
-          onClick={() => { setSubmitted(false); setClientId(''); setSelectedCreditor(''); }} 
+          onClick={() => { 
+            setSubmitted(false); 
+            setClientId(''); 
+            setEmails(['']); 
+          }} 
           className="mt-8 bg-amber-500 text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
           Done
@@ -147,25 +153,18 @@ const Prescription = () => {
         </div>
       )}
 
-      {/* Hero Header */}
-      <div className="bg-white p-6 border-l-4 border-amber-500 shadow-sm">
-        <h1 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Compliance Module</h1>
-        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Prescription Check</h2>
-      </div>
 
-      {/* NEW REUSABLE FORM CALL */}
       <RequestForm 
         clientId={clientId} 
         setClientId={setClientId} 
-        selectedCreditor={selectedCreditor} 
-        setSelectedCreditor={setSelectedCreditor} 
-        creditors={creditors} 
+        emails={emails}           // Array state
+        setEmails={setEmails}     // Setter
         handleRequest={handleRequest} 
         loading={loading} 
         fetchLogs={fetchLogs} 
         title="Inquire Prescription Status"
         buttonLabel="Send Legal Inquiry"
-        accentColor="#F59E0B" // Amber-500
+        accentColor="#F59E0B" 
       />
 
       {/* FILTER BAR SECTION */}

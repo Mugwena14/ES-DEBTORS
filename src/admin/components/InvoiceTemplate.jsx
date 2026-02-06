@@ -46,7 +46,7 @@ const InvoiceTemplate = ({ data }) => {
               src="https://res.cloudinary.com/dkmzveqce/image/upload/v1767100727/ChatGPT_Image_Dec_30_2025_03_08_48_PM_jppkez.png" 
             />
             <View style={styles.companyInfo}>
-              <Text style={{ fontWeight: 'bold', fontSize: 13 }}>MKH DEBTORS & SOLUTIONS</Text>
+              <Text style={{ fontWeight: 'bold', fontSize: 13 }}>MKH DEBTORS ASSOCIATES PTY LTD</Text>
               <Text>info@mkhdebtors.co.za</Text>
               <Text>www.mkhdebtors.co.za</Text>
             </View>

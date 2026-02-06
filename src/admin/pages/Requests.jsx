@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Filter } from 'lucide-react';
+import { Filter, Loader2 } from 'lucide-react';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EmailModal from '../components/EmailModal';
 import DetailsModal from '../components/DetailsModal';
@@ -14,13 +14,17 @@ const Requests = () => {
   const [serviceFilter, setServiceFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [sendingEmail, setSendingEmail] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [itemsPerPage] = useState(10);
   
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [activeImgUrl, setActiveImgUrl] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
   const [emailModal, setEmailModal] = useState({ isOpen: false, data: null, message: '', file: null });
-  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger' });
+  const [confirmConfig, setConfirmConfig] = useState({ 
+    isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger' 
+  });
 
   useEffect(() => { fetchRequests(); }, []);
 
@@ -36,26 +40,24 @@ const Requests = () => {
     }
   };
 
-  /**
-   * UPDATED: Now accepts the specific status string from the dropdown
-   */
-  const updateStatus = async (id, newStatus) => {
+  const handleUpdateStatus = async (id, newStatus) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Update Status',
+      message: `Change request status to ${newStatus}?`,
+      type: 'primary',
+      onConfirm: () => executeStatusUpdate(id, newStatus)
+    });
+  };
+
+  const executeStatusUpdate = async (id, newStatus) => {
+    setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     try {
       setUpdatingStatus(id);
-      
-      // Sending PATCH to match your backend CORS update
-      // Using the dynamic status passed from RequestsTable
-      await axios.patch(`${API_BASE_URL}/update-request-status/${id}`, { 
-        status: newStatus 
-      });
-
-      // Update local state with the new specific status
-      setRequests(prev => prev.map(req => 
-        req._id === id ? { ...req, status: newStatus } : req 
-      ));
+      await axios.patch(`${API_BASE_URL}/update-request-status/${id}`, { status: newStatus });
+      setRequests(prev => prev.map(req => req._id === id ? { ...req, status: newStatus } : req ));
     } catch (err) { 
-      console.error("Status Update Error:", err);
-      alert("Failed to update status. Check backend connection."); 
+      alert("Status update failed"); 
     } finally { 
       setUpdatingStatus(null); 
     }
@@ -63,111 +65,140 @@ const Requests = () => {
 
   const handleSendEmail = async () => {
     const recipientEmail = emailModal.data?.clientEmail || emailModal.data?.details?.email;
-    if (!recipientEmail) return alert("No recipient email found.");
+    if (!recipientEmail) return alert("No email found.");
     
+    setSendingEmail(true);
     try {
-      setSendingEmail(true);
       const formData = new FormData();
       formData.append('to', recipientEmail);
-      formData.append('subject', `Update: ${emailModal.data.requestType} - MKH Debtors`);
+      formData.append('subject', `Update: ${emailModal.data.serviceType || 'Request'}`);
       formData.append('message', emailModal.message);
       if (emailModal.file) formData.append('attachment', emailModal.file);
 
-      await axios.post(`${API_BASE_URL}/send-client-email`, formData, { 
-        headers: { 'Content-Type': 'multipart/form-data' } 
-      });
-      alert("Email sent successfully!");
+      await axios.post(`${API_BASE_URL}/send-client-email`, formData);
+      alert("Email sent!");
       setEmailModal({ isOpen: false, data: null, message: '', file: null });
     } catch (err) { 
-      alert("Failed to send email."); 
+      alert("Failed to send email"); 
     } finally { 
       setSendingEmail(false); 
     }
   };
 
+  // Logic to map UI labels to DB constants
+  const filterMap = {
+    "Credit Report": "CREDIT_REPORT",
+    "Paid Up": "PAID_UP_LETTER",
+    "Prescription": "PRESCRIPTION",
+    "Debt Review": "DEBT_REVIEW_REMOVAL",
+    "Defaults": "DEFAULT_CLEARING",
+    "Car Application": "CAR_APPLICATION",
+    "Judgment Removal": "JUDGMENT_REMOVAL"
+  };
+
   const filteredRequests = requests.filter(req => {
+    const type = req.serviceType || "";
+    const creditor = req.details?.creditorName || "";
     const matchesSearch = 
       req.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
       req.clientPhone?.includes(searchTerm) ||
-      req.creditorName?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = serviceFilter === 'All' || req.requestType === serviceFilter;
+      creditor.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFilter = serviceFilter === 'All' || type === filterMap[serviceFilter];
     return matchesSearch && matchesFilter;
   });
 
-  const itemsPerPage = 10;
-  const currentRequests = filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+  const currentRequests = filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      
       <EmailModal 
-        {...emailModal} 
-        sendingEmail={sendingEmail}
+        {...emailModal} sendingEmail={sendingEmail} onSend={handleSendEmail}
         onClose={() => setEmailModal({...emailModal, isOpen: false})}
         onMessageChange={(msg) => setEmailModal({...emailModal, message: msg})}
         onFileChange={(file) => setEmailModal({...emailModal, file})}
         onRemoveFile={() => setEmailModal({...emailModal, file: null})}
-        onSend={handleSendEmail}
       />
 
       <DetailsModal 
-        selectedRequest={selectedRequest}
-        activeImgUrl={activeImgUrl}
+        selectedRequest={selectedRequest} activeImgUrl={activeImgUrl}
         onBack={() => setActiveImgUrl(null)}
         onClose={() => { setSelectedRequest(null); setActiveImgUrl(null); }}
         onSetActiveImg={(url) => setActiveImgUrl(url)}
         onDownload={(url) => url.replace('/upload/', '/upload/fl_attachment/')}
       />
 
+      <ConfirmationModal 
+        isOpen={confirmConfig.isOpen} title={confirmConfig.title} message={confirmConfig.message}
+        type={confirmConfig.type} onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* SEARCH & FILTER HEADER */}
       <div className="bg-white p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl">
-        {/* SEARCH INPUT */}
-        <div className="relative flex-1 max-md:max-w-md">
+        <div className="relative flex-1">
           <input 
-            type="text" 
-            placeholder="Search name, phone or creditor..." 
-            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-[#00B4D8] outline-none transition-all font-medium text-sm rounded-lg"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            type="text" placeholder="Search name, phone or creditor..." 
+            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-[#00B4D8] outline-none rounded-lg text-sm font-medium"
+            value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
           />
           <div className="absolute left-3 top-3.5 text-gray-400">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
         </div>
 
-        {/* FILTER SELECT */}
         <div className="flex items-center gap-3">
           <Filter size={18} className="text-gray-400" />
           <select 
-            className="bg-[#111827] text-white px-4 py-3 text-xs font-bold uppercase tracking-widest outline-none rounded-lg cursor-pointer hover:bg-black transition-colors"
-            value={serviceFilter}
-            onChange={(e) => setServiceFilter(e.target.value)}
+            className="bg-[#111827] text-white px-4 py-3 text-xs font-bold uppercase tracking-widest rounded-lg outline-none"
+            value={serviceFilter} onChange={(e) => { setServiceFilter(e.target.value); setCurrentPage(1); }}
           >
             <option value="All">All Services</option>
-            <option value="Credit Report">Credit Report</option>
-            <option value="Paid Up">Paid Up</option>
-            <option value="Prescription">Prescription</option>
-            <option value="Debt Review">Debt Review</option>
-            <option value="Defaults">Defaults</option>
-            <option value="Car Application">Car Application</option>
-            <option value="Judgment Removal">Judgment Removal</option>
+            {Object.keys(filterMap).map(label => <option key={label} value={label}>{label}</option>)}
           </select>
         </div>
       </div>
 
-      <RequestsTable 
-        requests={currentRequests}
-        loading={loading}
-        updatingStatus={updatingStatus}
-        onUpdateStatus={updateStatus} // This now passes (id, label)
-        onView={setSelectedRequest}
-        onEmail={(req) => setEmailModal({ isOpen: true, data: req, message: `Hi ${req.clientName},`, file: null })}
-        onDelete={(id) => setConfirmConfig({ isOpen: true, title: 'Delete', message: 'Confirm delete?', onConfirm: () => {} })}
-      />
-
-      {/* Pagination component logic would go here */}
+      {/* TABLE SECTION */}
+      <div className="bg-white shadow-xl overflow-hidden border border-gray-100 rounded-xl">
+        {loading ? (
+          <div className="py-20 text-center">
+            <Loader2 className="animate-spin mx-auto text-[#00B4D8]" size={32} />
+          </div>
+        ) : (
+          <>
+            <RequestsTable 
+              requests={currentRequests} updatingStatus={updatingStatus}
+              onUpdateStatus={handleUpdateStatus} onView={setSelectedRequest}
+              onEmail={(req) => setEmailModal({ isOpen: true, data: req, message: `Hi ${req.clientName},`, file: null })}
+            />
+            
+            {/* PAGINATION BAR - CLIENT STYLE */}
+            <div className="p-6 bg-gray-50 flex justify-between items-center border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                Page {currentPage} of {totalPages || 1}
+              </p>
+              <div className="flex gap-2">
+                <button 
+                  disabled={currentPage === 1} 
+                  onClick={() => setCurrentPage(p => p - 1)} 
+                  className="px-4 py-2 border border-gray-300 text-xs font-bold uppercase tracking-widest disabled:opacity-30 hover:bg-white transition-colors"
+                >
+                  Prev
+                </button>
+                <button 
+                  disabled={currentPage === totalPages || totalPages === 0} 
+                  onClick={() => setCurrentPage(p => p + 1)} 
+                  className="px-4 py-2 bg-[#111827] text-[#00B4D8] text-xs font-bold uppercase tracking-widest disabled:opacity-30 hover:bg-black transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };

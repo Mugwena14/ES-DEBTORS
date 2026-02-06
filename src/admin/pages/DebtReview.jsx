@@ -10,7 +10,8 @@ import FilterBar from '../components/FilterBar';
 
 const DebtReview = () => {
   const [clientId, setClientId] = useState('');
-  const [selectedCreditor, setSelectedCreditor] = useState('');
+  // Supporting multiple debt review departments/emails
+  const [emails, setEmails] = useState(['']); 
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -18,40 +19,24 @@ const DebtReview = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   
-  // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   
   const menuRef = useRef(null);
   const [modalConfig, setModalConfig] = useState({ 
-    isOpen: false, 
-    title: '', 
-    message: '', 
-    type: 'danger', 
-    onConfirm: () => {} 
+    isOpen: false, title: '', message: '', type: 'danger', onConfirm: () => {} 
   });
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
-  
-  // Specific Debt Review / Clearance Departments
-  const creditorEmails = {
-    "ABSA Debt Review": "drcregistration@absa.co.za",
-    "Capitec Debt Review": "debtreview@capitecbank.co.za",
-    "Standard Bank DC": "dcqueries@standardbank.co.za",
-    "Nedbank Debt Review": "debtreviewapp@nedbank.co.za",
-    "FNB Debt Review": "debtreview@fnb.co.za"
-  };
-  const creditors = Object.keys(creditorEmails);
 
-  // Filter Logic - Only showing requests marked as 'Debt Review'
+  // Filter Logic - Specific to Debt Review
   const filteredRequests = requests.filter((req) => {
     const isDebtReviewType = req.requestType === 'Debt Review';
     const matchesSearch = 
       req.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (req.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = 
-      statusFilter === 'All' || req.status === statusFilter;
+    const matchesStatus = statusFilter === 'All' || req.status === statusFilter;
 
     return isDebtReviewType && matchesSearch && matchesStatus;
   });
@@ -76,28 +61,37 @@ const DebtReview = () => {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
   const handleRequest = async () => {
-    if (!clientId || !selectedCreditor) {
+    // Clean up empty inputs
+    const recipientList = emails.filter(email => email.trim() !== '');
+
+    if (!clientId || recipientList.length === 0) {
       setModalConfig({ 
         isOpen: true, 
         title: "Incomplete Form", 
-        message: "Please enter a Client ID and select a Debt Review Department.", 
+        message: "Please enter a Client ID and at least one Debt Review department email.", 
         type: "danger", 
         onConfirm: closeModal 
       });
       return;
     }
+
     setLoading(true);
     try {
       const payload = { 
         idNumber: clientId, 
-        creditorName: selectedCreditor, 
-        creditorEmail: creditorEmails[selectedCreditor],
+        creditorEmails: recipientList, // Sending as array for multi-send
         requestType: 'Debt Review' 
       };
       const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
-      if (res.data.success) { setSubmitted(true); fetchLogs(); }
+      if (res.data.success) { 
+        setSubmitted(true); 
+        fetchLogs(); 
+      }
     } catch (err) {
-      if (err.response?.status === 404) { setErrorDetails(clientId); setShowErrorModal(true); }
+      if (err.response?.status === 404) { 
+        setErrorDetails(clientId); 
+        setShowErrorModal(true); 
+      }
     } finally { setLoading(false); }
   };
 
@@ -126,8 +120,13 @@ const DebtReview = () => {
       <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#8B5CF6]">
         <ShieldCheck className="w-16 h-16 text-[#8B5CF6] mx-auto mb-4" />
         <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Clearance Request Sent</h2>
+        <p className="text-gray-400 text-sm">Dispatched to {emails.filter(e => e).length} departments.</p>
         <button 
-          onClick={() => { setSubmitted(false); setClientId(''); setSelectedCreditor(''); }} 
+          onClick={() => { 
+            setSubmitted(false); 
+            setClientId(''); 
+            setEmails(['']); 
+          }} 
           className="mt-8 bg-[#8B5CF6] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
           Done
@@ -154,18 +153,11 @@ const DebtReview = () => {
         </div>
       )}
 
-      {/* Hero Header */}
-      <div className="bg-white p-6 border-l-4 border-[#8B5CF6] shadow-sm">
-        <h1 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Financial Recovery</h1>
-        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Debt Review Removal</h2>
-      </div>
-
       <RequestForm 
         clientId={clientId} 
         setClientId={setClientId} 
-        selectedCreditor={selectedCreditor} 
-        setSelectedCreditor={setSelectedCreditor} 
-        creditors={creditors} 
+        emails={emails} 
+        setEmails={setEmails} 
         handleRequest={handleRequest} 
         loading={loading} 
         fetchLogs={fetchLogs} 
