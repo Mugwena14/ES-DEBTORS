@@ -5,7 +5,11 @@ const styles = StyleSheet.create({
   // Page 1: Invoice Styles
   page: { padding: 40, fontSize: 10, fontFamily: 'Helvetica', color: '#333' },
   header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, borderBottom: 2, borderBottomColor: '#0033A1', paddingBottom: 10 },
-  logo: { width: 50, height: 50, marginBottom: 5 },
+  
+  // Updated logo container for horizontal alignment
+  logoSection: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logo: { width: 50, height: 50 }, 
+  
   companyInfo: { color: '#0033A1' },
   title: { fontSize: 24, fontWeight: 'bold', color: '#0033A1' },
   section: { marginVertical: 10 },
@@ -40,7 +44,8 @@ const InvoiceTemplate = ({ data }) => {
       {/* PAGE 1: THE INVOICE */}
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <View>
+          {/* Logo on the left of Company Info */}
+          <View style={styles.logoSection}>
             <Image 
               style={styles.logo} 
               src="https://res.cloudinary.com/dkmzveqce/image/upload/v1767100727/ChatGPT_Image_Dec_30_2025_03_08_48_PM_jppkez.png" 

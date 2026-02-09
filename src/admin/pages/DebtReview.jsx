@@ -10,8 +10,10 @@ import FilterBar from '../components/FilterBar';
 
 const DebtReview = () => {
   const [clientId, setClientId] = useState('');
-  // Supporting multiple debt review departments/emails
   const [emails, setEmails] = useState(['']); 
+  // NEW: State for the mandatory ID and POA files
+  const [attachments, setAttachments] = useState({ idFile: null, poaFile: null });
+
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -29,15 +31,12 @@ const DebtReview = () => {
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
 
-  // Filter Logic - Specific to Debt Review
   const filteredRequests = requests.filter((req) => {
     const isDebtReviewType = req.requestType === 'Debt Review';
     const matchesSearch = 
       req.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (req.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
     const matchesStatus = statusFilter === 'All' || req.status === statusFilter;
-
     return isDebtReviewType && matchesSearch && matchesStatus;
   });
 
@@ -61,14 +60,14 @@ const DebtReview = () => {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
   const handleRequest = async () => {
-    // Clean up empty inputs
     const recipientList = emails.filter(email => email.trim() !== '');
 
-    if (!clientId || recipientList.length === 0) {
+    // VALIDATION: Ensure ID, email, and files are present
+    if (!clientId || recipientList.length === 0 || !attachments.idFile || !attachments.poaFile) {
       setModalConfig({ 
         isOpen: true, 
         title: "Incomplete Form", 
-        message: "Please enter a Client ID and at least one Debt Review department email.", 
+        message: "Please enter a Client ID, at least one Debt Review email, and upload both ID and POA documents.", 
         type: "danger", 
         onConfirm: closeModal 
       });
@@ -76,13 +75,19 @@ const DebtReview = () => {
     }
 
     setLoading(true);
+
+    // Prepare Multipart FormData
+    const formData = new FormData();
+    formData.append('idNumber', clientId);
+    formData.append('requestType', 'Debt Review');
+    formData.append('creditorEmails', JSON.stringify(recipientList));
+    formData.append('idFile', attachments.idFile);
+    formData.append('poaFile', attachments.poaFile);
+
     try {
-      const payload = { 
-        idNumber: clientId, 
-        creditorEmails: recipientList, // Sending as array for multi-send
-        requestType: 'Debt Review' 
-      };
-      const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
+      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       if (res.data.success) { 
         setSubmitted(true); 
         fetchLogs(); 
@@ -99,7 +104,8 @@ const DebtReview = () => {
     setModalConfig({
       isOpen: true, title: "Confirm Status Change", message: "Mark Clearance Certificate as Received?", type: "info",
       onConfirm: async () => {
-        await axios.put(`${API_BASE_URL}/update-status/${requestId}`, { status: 'Received' });
+        // Updated to use the PATCH route for status updates
+        await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' });
         fetchLogs(); setActiveMenuId(null); closeModal();
       }
     });
@@ -120,12 +126,13 @@ const DebtReview = () => {
       <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#8B5CF6]">
         <ShieldCheck className="w-16 h-16 text-[#8B5CF6] mx-auto mb-4" />
         <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Clearance Request Sent</h2>
-        <p className="text-gray-400 text-sm">Dispatched to {emails.filter(e => e).length} departments.</p>
+        <p className="text-gray-400 text-sm">Form 19 request dispatched with verification attachments.</p>
         <button 
           onClick={() => { 
             setSubmitted(false); 
             setClientId(''); 
-            setEmails(['']); 
+            setEmails(['']);
+            setAttachments({ idFile: null, poaFile: null });
           }} 
           className="mt-8 bg-[#8B5CF6] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
@@ -146,7 +153,7 @@ const DebtReview = () => {
             <div className="text-center">
               <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="text-red-600" size={32} /></div>
               <h2 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-2">Client Not Found</h2>
-              <p className="text-gray-600 mb-6">The ID <span className="font-mono font-bold text-red-600">{errorDetails}</span> is not registered for Debt Review services.</p>
+              <p className="text-gray-600 mb-6">The ID <span className="font-mono font-bold text-red-600">{errorDetails}</span> is not registered.</p>
               <Link to="/admin/clients" className="block bg-gray-900 text-white font-bold py-4 px-6 uppercase tracking-widest text-xs">View Clients</Link>
             </div>
           </div>
@@ -157,7 +164,9 @@ const DebtReview = () => {
         clientId={clientId} 
         setClientId={setClientId} 
         emails={emails} 
-        setEmails={setEmails} 
+        setEmails={setEmails}
+        attachments={attachments}
+        setAttachments={setAttachments}
         handleRequest={handleRequest} 
         loading={loading} 
         fetchLogs={fetchLogs} 
@@ -166,7 +175,6 @@ const DebtReview = () => {
         accentColor="#8B5CF6"
       />
 
-      {/* FILTER BAR SECTION */}
       <div>
         <FilterBar 
           searchTerm={searchTerm} 

@@ -10,8 +10,10 @@ import FilterBar from '../components/FilterBar';
 
 const Prescription = () => {
   const [clientId, setClientId] = useState('');
-  // Changed to emails array to support up to 5/6 recipients
   const [emails, setEmails] = useState(['']); 
+  // NEW: State for the mandatory ID and POA files
+  const [attachments, setAttachments] = useState({ idFile: null, poaFile: null });
+  
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -29,15 +31,12 @@ const Prescription = () => {
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
 
-  // Filter Logic - Specific to Prescription
   const filteredRequests = requests.filter((req) => {
     const isPrescriptionType = req.requestType === 'Prescription';
     const matchesSearch = 
       req.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (req.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
     const matchesStatus = statusFilter === 'All' || req.status === statusFilter;
-
     return isPrescriptionType && matchesSearch && matchesStatus;
   });
 
@@ -61,14 +60,14 @@ const Prescription = () => {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
   const handleRequest = async () => {
-    // Filter valid emails
     const recipientList = emails.filter(email => email.trim() !== '');
 
-    if (!clientId || recipientList.length === 0) {
+    // VALIDATION: Check ID, emails, and both files
+    if (!clientId || recipientList.length === 0 || !attachments.idFile || !attachments.poaFile) {
       setModalConfig({ 
         isOpen: true, 
-        title: "Incomplete Form", 
-        message: "Please enter a Client ID and at least one Legal Email for Prescription check.", 
+        title: "Incomplete Inquiry", 
+        message: "Please enter a Client ID, at least one Legal Email, and upload the ID & POA documents.", 
         type: "danger", 
         onConfirm: closeModal 
       });
@@ -76,13 +75,20 @@ const Prescription = () => {
     }
 
     setLoading(true);
+
+    // Prepare Multipart FormData for the legal inquiry
+    const formData = new FormData();
+    formData.append('idNumber', clientId);
+    formData.append('requestType', 'Prescription');
+    formData.append('creditorEmails', JSON.stringify(recipientList));
+    formData.append('idFile', attachments.idFile);
+    formData.append('poaFile', attachments.poaFile);
+
     try {
-      const payload = { 
-        idNumber: clientId, 
-        creditorEmails: recipientList, // Sending array
-        requestType: 'Prescription' 
-      };
-      const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
+      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
       if (res.data.success) { 
         setSubmitted(true); 
         fetchLogs(); 
@@ -99,7 +105,8 @@ const Prescription = () => {
     setModalConfig({
       isOpen: true, title: "Confirm Status Change", message: "Mark Prescription Status as Received?", type: "info",
       onConfirm: async () => {
-        await axios.put(`${API_BASE_URL}/update-status/${requestId}`, { status: 'Received' });
+        // Updated path to match the patched route structure
+        await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' });
         fetchLogs(); setActiveMenuId(null); closeModal();
       }
     });
@@ -119,13 +126,14 @@ const Prescription = () => {
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-amber-500">
         <FileSearch className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-        <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Prescription Inquiry Sent</h2>
-        <p className="text-gray-400 text-sm">Sent to {emails.filter(e => e).length} legal departments.</p>
+        <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Inquiry Sent</h2>
+        <p className="text-gray-400 text-sm">Legal departments notified with attached credentials.</p>
         <button 
           onClick={() => { 
             setSubmitted(false); 
             setClientId(''); 
             setEmails(['']); 
+            setAttachments({ idFile: null, poaFile: null });
           }} 
           className="mt-8 bg-amber-500 text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
@@ -153,12 +161,13 @@ const Prescription = () => {
         </div>
       )}
 
-
       <RequestForm 
         clientId={clientId} 
         setClientId={setClientId} 
-        emails={emails}           // Array state
-        setEmails={setEmails}     // Setter
+        emails={emails}
+        setEmails={setEmails}
+        attachments={attachments}
+        setAttachments={setAttachments}
         handleRequest={handleRequest} 
         loading={loading} 
         fetchLogs={fetchLogs} 
@@ -167,7 +176,6 @@ const Prescription = () => {
         accentColor="#F59E0B" 
       />
 
-      {/* FILTER BAR SECTION */}
       <div>
         <FilterBar 
           searchTerm={searchTerm} 

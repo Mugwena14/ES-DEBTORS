@@ -10,8 +10,10 @@ import FilterBar from '../components/FilterBar';
 
 const PaidUp = () => {
   const [clientId, setClientId] = useState('');
-  // Changed from single string to an array starting with one empty field
   const [emails, setEmails] = useState(['']); 
+  // NEW: State for the mandatory ID and POA files
+  const [attachments, setAttachments] = useState({ idFile: null, poaFile: null });
+  
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -58,14 +60,14 @@ const PaidUp = () => {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
   const handleRequest = async () => {
-    // Filter out empty strings from the array
     const recipientList = emails.filter(email => email.trim() !== '');
 
-    if (!clientId || recipientList.length === 0) {
+    // VALIDATION: Check ID, emails, and both required files
+    if (!clientId || recipientList.length === 0 || !attachments.idFile || !attachments.poaFile) {
       setModalConfig({ 
         isOpen: true, 
         title: "Incomplete Form", 
-        message: "Please provide a Client ID and at least one valid email address.", 
+        message: "Please provide a Client ID, at least one email, and upload both the ID and POA documents.", 
         type: "danger", 
         onConfirm: closeModal 
       });
@@ -73,15 +75,22 @@ const PaidUp = () => {
     }
 
     setLoading(true);
+
+    // Prepare Multipart FormData
+    const formData = new FormData();
+    formData.append('idNumber', clientId);
+    formData.append('requestType', 'Paid-Up');
+    // We stringify the array because FormData converts all non-file values to strings
+    formData.append('creditorEmails', JSON.stringify(recipientList));
+    // Append the binary files
+    formData.append('idFile', attachments.idFile);
+    formData.append('poaFile', attachments.poaFile);
+
     try {
-      const payload = { 
-        idNumber: clientId, 
-        // Sending the array of emails to the backend
-        creditorEmails: recipientList, 
-        requestType: 'Paid-Up' 
-      };
-      
-      const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
+      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
       if (res.data.success) { 
         setSubmitted(true); 
         fetchLogs(); 
@@ -90,6 +99,8 @@ const PaidUp = () => {
       if (err.response?.status === 404) { 
         setErrorDetails(clientId); 
         setShowErrorModal(true); 
+      } else {
+        console.error("Submission error:", err);
       }
     } finally { setLoading(false); }
   };
@@ -98,7 +109,7 @@ const PaidUp = () => {
     setModalConfig({
       isOpen: true, title: "Confirm Status Change", message: "Mark this document as Received?", type: "info",
       onConfirm: async () => {
-        await axios.put(`${API_BASE_URL}/update-status/${requestId}`, { status: 'Received' });
+        await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' });
         fetchLogs(); setActiveMenuId(null); closeModal();
       }
     });
@@ -119,12 +130,13 @@ const PaidUp = () => {
       <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#00B4D8]">
         <CheckCircle className="w-16 h-16 text-[#00B4D8] mx-auto mb-4" />
         <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Requests Sent</h2>
-        <p className="text-gray-400 text-sm">Sent to {emails.filter(e => e).length} recipients.</p>
+        <p className="text-gray-400 text-sm">Official emails with ID and POA have been dispatched.</p>
         <button 
           onClick={() => { 
             setSubmitted(false); 
             setClientId(''); 
-            setEmails(['']); // Reset to one empty field
+            setEmails(['']); 
+            setAttachments({ idFile: null, poaFile: null }); // Reset files
           }} 
           className="mt-8 bg-[#00B4D8] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
@@ -155,8 +167,10 @@ const PaidUp = () => {
       <RequestForm 
         clientId={clientId} 
         setClientId={setClientId} 
-        emails={emails}           // Updated Prop
-        setEmails={setEmails}     // Updated Prop
+        emails={emails}
+        setEmails={setEmails}
+        attachments={attachments}
+        setAttachments={setAttachments}
         handleRequest={handleRequest} 
         loading={loading} 
         fetchLogs={fetchLogs} 

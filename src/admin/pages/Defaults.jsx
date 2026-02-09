@@ -10,8 +10,10 @@ import FilterBar from '../components/FilterBar';
 
 const Defaults = () => {
   const [clientId, setClientId] = useState('');
-  // Now using the emails array for multi-department reach
   const [emails, setEmails] = useState(['']); 
+  // NEW: State for the mandatory ID and POA files
+  const [attachments, setAttachments] = useState({ idFile: null, poaFile: null });
+  
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -29,15 +31,12 @@ const Defaults = () => {
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
 
-  // Filter Logic - Specific to Default Removal/Correction
   const filteredRequests = requests.filter((req) => {
     const isDefaultType = req.requestType === 'Defaults';
     const matchesSearch = 
       req.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (req.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
     const matchesStatus = statusFilter === 'All' || req.status === statusFilter;
-
     return isDefaultType && matchesSearch && matchesStatus;
   });
 
@@ -63,11 +62,12 @@ const Defaults = () => {
   const handleRequest = async () => {
     const recipientList = emails.filter(email => email.trim() !== '');
 
-    if (!clientId || recipientList.length === 0) {
+    // VALIDATION: ID, emails, and both files are now mandatory
+    if (!clientId || recipientList.length === 0 || !attachments.idFile || !attachments.poaFile) {
       setModalConfig({ 
         isOpen: true, 
         title: "Missing Information", 
-        message: "Please enter a Client ID and at least one email for the credit bureau/collections department.", 
+        message: "Please enter a Client ID, at least one email, and upload both ID and POA documents for mitigation.", 
         type: "danger", 
         onConfirm: closeModal 
       });
@@ -75,13 +75,19 @@ const Defaults = () => {
     }
 
     setLoading(true);
+
+    // Build Multipart FormData
+    const formData = new FormData();
+    formData.append('idNumber', clientId);
+    formData.append('requestType', 'Defaults');
+    formData.append('creditorEmails', JSON.stringify(recipientList));
+    formData.append('idFile', attachments.idFile);
+    formData.append('poaFile', attachments.poaFile);
+
     try {
-      const payload = { 
-        idNumber: clientId, 
-        creditorEmails: recipientList, 
-        requestType: 'Defaults' 
-      };
-      const res = await axios.post(`${API_BASE_URL}/request-document`, payload);
+      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       if (res.data.success) { 
         setSubmitted(true); 
         fetchLogs(); 
@@ -98,7 +104,8 @@ const Defaults = () => {
     setModalConfig({
       isOpen: true, title: "Confirm Update", message: "Confirm that the default status update has been received?", type: "info",
       onConfirm: async () => {
-        await axios.put(`${API_BASE_URL}/update-status/${requestId}`, { status: 'Received' });
+        // Path updated to match your patched backend route
+        await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' });
         fetchLogs(); setActiveMenuId(null); closeModal();
       }
     });
@@ -119,12 +126,13 @@ const Defaults = () => {
       <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-[#DC2626]">
         <OctagonAlert className="w-16 h-16 text-[#DC2626] mx-auto mb-4" />
         <h2 className="text-white text-2xl font-black uppercase tracking-tighter mb-2">Correction Request Sent</h2>
-        <p className="text-gray-400 text-sm">Dispatched to {emails.filter(e => e).length} bureau contacts.</p>
+        <p className="text-gray-400 text-sm">Dispatched to bureau contacts with attached credentials.</p>
         <button 
           onClick={() => { 
             setSubmitted(false); 
             setClientId(''); 
             setEmails(['']); 
+            setAttachments({ idFile: null, poaFile: null });
           }} 
           className="mt-8 bg-[#DC2626] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
@@ -145,7 +153,7 @@ const Defaults = () => {
             <div className="text-center">
               <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="text-[#DC2626]" size={32} /></div>
               <h2 className="text-2xl font-black uppercase tracking-tighter text-gray-900 mb-2">Record Error</h2>
-              <p className="text-gray-600 mb-6">ID <span className="font-mono font-bold text-[#DC2626]">{errorDetails}</span> could not be found for default mitigation.</p>
+              <p className="text-gray-600 mb-6">ID <span className="font-mono font-bold text-[#DC2626]">{errorDetails}</span> not found.</p>
               <Link to="/admin/clients" className="block bg-gray-900 text-white font-bold py-4 px-6 uppercase tracking-widest text-xs">Verify Client</Link>
             </div>
           </div>
@@ -156,7 +164,9 @@ const Defaults = () => {
         clientId={clientId} 
         setClientId={setClientId} 
         emails={emails} 
-        setEmails={setEmails} 
+        setEmails={setEmails}
+        attachments={attachments}
+        setAttachments={setAttachments}
         handleRequest={handleRequest} 
         loading={loading} 
         fetchLogs={fetchLogs} 

@@ -40,6 +40,33 @@ const Requests = () => {
     }
   };
 
+  // --- DELETE LOGIC START ---
+  const handleDelete = (id) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete Request',
+      message: 'Are you sure you want to permanently delete this request? This action cannot be undone.',
+      type: 'danger',
+      onConfirm: () => executeDelete(id)
+    });
+  };
+
+  const executeDelete = async (id) => {
+    setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+    try {
+      setLoading(true); // Show loader during deletion
+      await axios.delete(`${API_BASE_URL}/delete-request/${id}`);
+      setRequests(prev => prev.filter(req => req._id !== id));
+      alert("Request deleted successfully");
+    } catch (err) {
+      console.error("Delete Error:", err);
+      alert("Failed to delete request");
+    } finally {
+      setLoading(false);
+    }
+  };
+  // --- DELETE LOGIC END ---
+
   const handleUpdateStatus = async (id, newStatus) => {
     setConfirmConfig({
       isOpen: true,
@@ -85,7 +112,6 @@ const Requests = () => {
     }
   };
 
-  // Logic to map UI labels to DB constants
   const filterMap = {
     "Credit Report": "CREDIT_REPORT",
     "Paid Up": "PAID_UP_LETTER",
@@ -135,7 +161,6 @@ const Requests = () => {
         onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
       />
 
-      {/* SEARCH & FILTER HEADER */}
       <div className="bg-white p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl">
         <div className="relative flex-1">
           <input 
@@ -160,7 +185,6 @@ const Requests = () => {
         </div>
       </div>
 
-      {/* TABLE SECTION */}
       <div className="bg-white shadow-xl overflow-hidden border border-gray-100 rounded-xl">
         {loading ? (
           <div className="py-20 text-center">
@@ -170,11 +194,12 @@ const Requests = () => {
           <>
             <RequestsTable 
               requests={currentRequests} updatingStatus={updatingStatus}
-              onUpdateStatus={handleUpdateStatus} onView={setSelectedRequest}
+              onUpdateStatus={handleUpdateStatus} 
+              onView={setSelectedRequest}
+              onDelete={handleDelete} // PASSED DELETE PROP
               onEmail={(req) => setEmailModal({ isOpen: true, data: req, message: `Hi ${req.clientName},`, file: null })}
             />
             
-            {/* PAGINATION BAR - CLIENT STYLE */}
             <div className="p-6 bg-gray-50 flex justify-between items-center border-t border-gray-100">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                 Page {currentPage} of {totalPages || 1}
