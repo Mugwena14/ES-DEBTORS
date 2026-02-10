@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'; // Added useNavigate
 import { 
   LayoutDashboard, 
   Users, 
@@ -13,7 +13,14 @@ import {
 
 const AdminLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate(); // Hook for redirection
   const [isDocsOpen, setIsDocsOpen] = useState(false);
+
+  // LOGOUT HANDLER
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken'); // Clear session
+    navigate('/login'); // Boot back to login
+  };
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={20} /> },
@@ -65,7 +72,6 @@ const AdminLayout = () => {
                     {isDocsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </button>
 
-                  {/* DROPDOWN SUB-LINKS */}
                   {isDocsOpen && (
                     <div className="ml-9 mt-1 flex flex-col space-y-1 border-l-2 border-gray-800">
                       {item.subLinks.map((sub) => (
@@ -106,8 +112,12 @@ const AdminLayout = () => {
           })}
         </nav>
 
+        {/* LOGOUT BUTTON */}
         <div className="p-6 border-t border-gray-800">
-          <button className="flex items-center gap-3 text-gray-500 hover:text-red-400 transition-colors text-xs uppercase tracking-[0.2em] font-bold">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 text-gray-500 hover:text-red-400 transition-colors text-xs uppercase tracking-[0.2em] font-bold w-full"
+          >
             <LogOut size={18} />
             Logout
           </button>

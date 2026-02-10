@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertTriangle, X, FileSearch } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -9,9 +10,9 @@ import DocumentTable from '../components/DocumentTable';
 import FilterBar from '../components/FilterBar';
 
 const Prescription = () => {
+  const navigate = useNavigate();
   const [clientId, setClientId] = useState('');
   const [emails, setEmails] = useState(['']); 
-  // NEW: State for the mandatory ID and POA files
   const [attachments, setAttachments] = useState({ idFile: null, poaFile: null });
   
   const [requests, setRequests] = useState([]);
@@ -30,6 +31,25 @@ const Prescription = () => {
   });
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
+
+  // --- AUTH HELPERS ---
+  const getAuthHeaders = (extraHeaders = {}) => {
+    const token = localStorage.getItem('adminToken');
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...extraHeaders
+      }
+    };
+  };
+
+  const handleAuthError = (err) => {
+    if (err.response && err.response.status === 401) {
+      localStorage.removeItem('adminToken');
+      navigate('/login');
+    }
+    console.error("API Error:", err);
+  };
 
   const filteredRequests = requests.filter((req) => {
     const isPrescriptionType = req.requestType === 'Prescription';
@@ -50,9 +70,11 @@ const Prescription = () => {
 
   const fetchLogs = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/logs`);
+      const res = await axios.get(`${API_BASE_URL}/logs`, getAuthHeaders());
       if (res.data.success) setRequests(res.data.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      handleAuthError(err); 
+    }
   };
 
   useEffect(() => { fetchLogs(); }, []);
@@ -62,7 +84,6 @@ const Prescription = () => {
   const handleRequest = async () => {
     const recipientList = emails.filter(email => email.trim() !== '');
 
-    // VALIDATION: Check ID, emails, and both files
     if (!clientId || recipientList.length === 0 || !attachments.idFile || !attachments.poaFile) {
       setModalConfig({ 
         isOpen: true, 
@@ -76,7 +97,6 @@ const Prescription = () => {
 
     setLoading(true);
 
-    // Prepare Multipart FormData for the legal inquiry
     const formData = new FormData();
     formData.append('idNumber', clientId);
     formData.append('requestType', 'Prescription');
@@ -85,9 +105,8 @@ const Prescription = () => {
     formData.append('poaFile', attachments.poaFile);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // Axios handles Content-Type for FormData, but we still need the Bearer token
+      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, getAuthHeaders());
 
       if (res.data.success) { 
         setSubmitted(true); 
@@ -97,6 +116,8 @@ const Prescription = () => {
       if (err.response?.status === 404) { 
         setErrorDetails(clientId); 
         setShowErrorModal(true); 
+      } else {
+        handleAuthError(err);
       }
     } finally { setLoading(false); }
   };
@@ -105,9 +126,14 @@ const Prescription = () => {
     setModalConfig({
       isOpen: true, title: "Confirm Status Change", message: "Mark Prescription Status as Received?", type: "info",
       onConfirm: async () => {
-        // Updated path to match the patched route structure
-        await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' });
-        fetchLogs(); setActiveMenuId(null); closeModal();
+        try {
+          await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' }, getAuthHeaders());
+          fetchLogs(); 
+          setActiveMenuId(null); 
+          closeModal();
+        } catch (err) {
+          handleAuthError(err);
+        }
       }
     });
   };
@@ -116,12 +142,19 @@ const Prescription = () => {
     setModalConfig({
       isOpen: true, title: "Delete Record", message: "This action cannot be undone.", type: "danger",
       onConfirm: async () => {
-        await axios.delete(`${API_BASE_URL}/delete-request/${requestId}`);
-        fetchLogs(); setActiveMenuId(null); closeModal();
+        try {
+          await axios.delete(`${API_BASE_URL}/delete-request/${requestId}`, getAuthHeaders());
+          fetchLogs(); 
+          setActiveMenuId(null); 
+          closeModal();
+        } catch (err) {
+          handleAuthError(err);
+        }
       }
     });
   };
 
+  // UI Rendering Logic (Remains identical to your provided code)
   if (submitted) return (
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="w-full max-w-md bg-[#111827] p-12 shadow-2xl text-center border-b-4 border-amber-500">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertTriangle, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -9,9 +10,9 @@ import DocumentTable from '../components/DocumentTable';
 import FilterBar from '../components/FilterBar';
 
 const PaidUp = () => {
+  const navigate = useNavigate();
   const [clientId, setClientId] = useState('');
   const [emails, setEmails] = useState(['']); 
-  // NEW: State for the mandatory ID and POA files
   const [attachments, setAttachments] = useState({ idFile: null, poaFile: null });
   
   const [requests, setRequests] = useState([]);
@@ -30,6 +31,24 @@ const PaidUp = () => {
   });
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
+
+  // --- AUTH HELPERS ---
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('adminToken');
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  };
+
+  const handleAuthError = (err) => {
+    if (err.response && err.response.status === 401) {
+      localStorage.removeItem('adminToken');
+      navigate('/login');
+    }
+    console.error("API Error:", err);
+  };
 
   const filteredRequests = requests.filter((req) => {
     const isPaidUpType = !req.requestType || req.requestType === 'Paid-Up';
@@ -50,9 +69,11 @@ const PaidUp = () => {
 
   const fetchLogs = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/logs`);
+      const res = await axios.get(`${API_BASE_URL}/logs`, getAuthHeaders());
       if (res.data.success) setRequests(res.data.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      handleAuthError(err); 
+    }
   };
 
   useEffect(() => { fetchLogs(); }, []);
@@ -62,7 +83,6 @@ const PaidUp = () => {
   const handleRequest = async () => {
     const recipientList = emails.filter(email => email.trim() !== '');
 
-    // VALIDATION: Check ID, emails, and both required files
     if (!clientId || recipientList.length === 0 || !attachments.idFile || !attachments.poaFile) {
       setModalConfig({ 
         isOpen: true, 
@@ -76,20 +96,15 @@ const PaidUp = () => {
 
     setLoading(true);
 
-    // Prepare Multipart FormData
     const formData = new FormData();
     formData.append('idNumber', clientId);
     formData.append('requestType', 'Paid-Up');
-    // We stringify the array because FormData converts all non-file values to strings
     formData.append('creditorEmails', JSON.stringify(recipientList));
-    // Append the binary files
     formData.append('idFile', attachments.idFile);
     formData.append('poaFile', attachments.poaFile);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, getAuthHeaders());
 
       if (res.data.success) { 
         setSubmitted(true); 
@@ -100,7 +115,7 @@ const PaidUp = () => {
         setErrorDetails(clientId); 
         setShowErrorModal(true); 
       } else {
-        console.error("Submission error:", err);
+        handleAuthError(err);
       }
     } finally { setLoading(false); }
   };
@@ -109,8 +124,14 @@ const PaidUp = () => {
     setModalConfig({
       isOpen: true, title: "Confirm Status Change", message: "Mark this document as Received?", type: "info",
       onConfirm: async () => {
-        await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' });
-        fetchLogs(); setActiveMenuId(null); closeModal();
+        try {
+          await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' }, getAuthHeaders());
+          fetchLogs(); 
+          setActiveMenuId(null); 
+          closeModal();
+        } catch (err) {
+          handleAuthError(err);
+        }
       }
     });
   };
@@ -119,8 +140,14 @@ const PaidUp = () => {
     setModalConfig({
       isOpen: true, title: "Delete Record", message: "This action cannot be undone.", type: "danger",
       onConfirm: async () => {
-        await axios.delete(`${API_BASE_URL}/delete-request/${requestId}`);
-        fetchLogs(); setActiveMenuId(null); closeModal();
+        try {
+          await axios.delete(`${API_BASE_URL}/delete-request/${requestId}`, getAuthHeaders());
+          fetchLogs(); 
+          setActiveMenuId(null); 
+          closeModal();
+        } catch (err) {
+          handleAuthError(err);
+        }
       }
     });
   };
@@ -136,7 +163,7 @@ const PaidUp = () => {
             setSubmitted(false); 
             setClientId(''); 
             setEmails(['']); 
-            setAttachments({ idFile: null, poaFile: null }); // Reset files
+            setAttachments({ idFile: null, poaFile: null });
           }} 
           className="mt-8 bg-[#00B4D8] text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >

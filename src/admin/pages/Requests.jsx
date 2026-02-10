@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; // Added for redirecting on auth failure
 import { Filter, Loader2 } from 'lucide-react';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EmailModal from '../components/EmailModal';
@@ -9,6 +10,7 @@ import RequestsTable from '../components/RequestsTable';
 const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
 
 const Requests = () => {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [serviceFilter, setServiceFilter] = useState('All');
@@ -26,64 +28,66 @@ const Requests = () => {
     isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger' 
   });
 
+  // Helper to get headers with token
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('adminToken');
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  };
+
+  // Helper to handle 401 Unauthorized
+  const handleAuthError = (err) => {
+    if (err.response && err.response.status === 401) {
+      localStorage.removeItem('adminToken');
+      navigate('/login');
+    }
+    console.error("API Error:", err);
+  };
+
   useEffect(() => { fetchRequests(); }, []);
 
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/whatsapp-requests`);
+      const res = await axios.get(`${API_BASE_URL}/whatsapp-requests`, getAuthHeaders());
       setRequests(res.data.data || []);
     } catch (err) { 
-      console.error("Fetch Error:", err); 
+      handleAuthError(err);
     } finally { 
       setLoading(false); 
     }
   };
 
-  // --- DELETE LOGIC START ---
-  const handleDelete = (id) => {
-    setConfirmConfig({
-      isOpen: true,
-      title: 'Delete Request',
-      message: 'Are you sure you want to permanently delete this request? This action cannot be undone.',
-      type: 'danger',
-      onConfirm: () => executeDelete(id)
-    });
-  };
-
   const executeDelete = async (id) => {
     setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     try {
-      setLoading(true); // Show loader during deletion
-      await axios.delete(`${API_BASE_URL}/delete-request/${id}`);
+      setLoading(true);
+      await axios.delete(`${API_BASE_URL}/delete-request/${id}`, getAuthHeaders());
       setRequests(prev => prev.filter(req => req._id !== id));
       alert("Request deleted successfully");
     } catch (err) {
-      console.error("Delete Error:", err);
+      handleAuthError(err);
       alert("Failed to delete request");
     } finally {
       setLoading(false);
     }
-  };
-  // --- DELETE LOGIC END ---
-
-  const handleUpdateStatus = async (id, newStatus) => {
-    setConfirmConfig({
-      isOpen: true,
-      title: 'Update Status',
-      message: `Change request status to ${newStatus}?`,
-      type: 'primary',
-      onConfirm: () => executeStatusUpdate(id, newStatus)
-    });
   };
 
   const executeStatusUpdate = async (id, newStatus) => {
     setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     try {
       setUpdatingStatus(id);
-      await axios.patch(`${API_BASE_URL}/update-request-status/${id}`, { status: newStatus });
+      await axios.patch(
+        `${API_BASE_URL}/update-request-status/${id}`, 
+        { status: newStatus }, 
+        getAuthHeaders()
+      );
       setRequests(prev => prev.map(req => req._id === id ? { ...req, status: newStatus } : req ));
     } catch (err) { 
+      handleAuthError(err);
       alert("Status update failed"); 
     } finally { 
       setUpdatingStatus(null); 
@@ -102,16 +106,20 @@ const Requests = () => {
       formData.append('message', emailModal.message);
       if (emailModal.file) formData.append('attachment', emailModal.file);
 
-      await axios.post(`${API_BASE_URL}/send-client-email`, formData);
+      // Note: Axios automatically sets multipart/form-data when sending FormData
+      await axios.post(`${API_BASE_URL}/send-client-email`, formData, getAuthHeaders());
+      
       alert("Email sent!");
       setEmailModal({ isOpen: false, data: null, message: '', file: null });
     } catch (err) { 
+      handleAuthError(err);
       alert("Failed to send email"); 
     } finally { 
       setSendingEmail(false); 
     }
   };
 
+  // --- REST OF COMPONENT LOGIC (Filtering/Pagination) REMAINS THE SAME ---
   const filterMap = {
     "Credit Report": "CREDIT_REPORT",
     "Paid Up": "PAID_UP_LETTER",
@@ -136,6 +144,26 @@ const Requests = () => {
 
   const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
   const currentRequests = filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleDelete = (id) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete Request',
+      message: 'Are you sure you want to permanently delete this request? This action cannot be undone.',
+      type: 'danger',
+      onConfirm: () => executeDelete(id)
+    });
+  };
+
+  const handleUpdateStatus = (id, newStatus) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Update Status',
+      message: `Change request status to ${newStatus}?`,
+      type: 'primary',
+      onConfirm: () => executeStatusUpdate(id, newStatus)
+    });
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -196,7 +224,7 @@ const Requests = () => {
               requests={currentRequests} updatingStatus={updatingStatus}
               onUpdateStatus={handleUpdateStatus} 
               onView={setSelectedRequest}
-              onDelete={handleDelete} // PASSED DELETE PROP
+              onDelete={handleDelete}
               onEmail={(req) => setEmailModal({ isOpen: true, data: req, message: `Hi ${req.clientName},`, file: null })}
             />
             

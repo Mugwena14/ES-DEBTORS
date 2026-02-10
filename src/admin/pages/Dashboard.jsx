@@ -1,48 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Users, Clock, FileCheck, ArrowUpRight, Loader2, Calendar, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Clock, FileCheck, Loader2, Calendar, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ activeClients: 0, pendingDocs: 0, completedDocs: 0 });
   const [recentRequests, setRecentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('adminToken');
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  };
+
+  const handleAuthError = (err) => {
+    if (err.response && err.response.status === 401) {
+      localStorage.removeItem('adminToken');
+      navigate('/login');
+    }
+    console.error("Dashboard Fetch Error:", err);
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        const headers = getAuthHeaders();
         
-        // Parallel fetch: Stats, Clients, and WhatsApp (Chatbot) Requests
         const [statsRes, clientsRes, whatsappRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/stats`),
-          axios.get('https://mkh-debtors-backend.onrender.com/api/clients'),
-          axios.get(`${API_BASE_URL}/whatsapp-requests`)
+          axios.get(`${API_BASE_URL}/stats`, headers),
+          axios.get('https://mkh-debtors-backend.onrender.com/api/clients', headers),
+          axios.get(`${API_BASE_URL}/whatsapp-requests`, headers)
         ]);
 
-        if (statsRes.data.success) {
-          const allClients = clientsRes.data.data || [];
-          const activeCount = allClients.filter(c => c.accountStatus === 'Active').length;
+        // Logic check: Ensure we handle both { data: [...] } and { success: true, data: [...] }
+        const statsData = statsRes.data.stats || statsRes.data;
+        const clientsData = clientsRes.data.data || clientsRes.data || [];
+        const whatsappData = whatsappRes.data.data || whatsappRes.data || [];
 
-          setStats({
-            ...statsRes.data.stats,
-            activeClients: activeCount 
-          });
-          
-          // Show the 5 most recent Chatbot requests instead of manual doc logs
-          const latestChatRequests = (whatsappRes.data.data || []).slice(0, 5);
-          setRecentRequests(latestChatRequests);
-        }
+        const activeCount = Array.isArray(clientsData) 
+          ? clientsData.filter(c => c.accountStatus === 'Active').length 
+          : 0;
+
+        setStats({
+          activeClients: activeCount,
+          pendingDocs: statsData?.pendingDocs || 0,
+          completedDocs: statsData?.completedDocs || 0
+        });
+        
+        // Ensure we only set an array
+        setRecentRequests(Array.isArray(whatsappData) ? whatsappData.slice(0, 5) : []);
+
       } catch (err) {
-        console.error("Error loading dashboard data", err);
+        handleAuthError(err);
       } finally {
         setLoading(false);
       }
     };
     fetchDashboardData();
-  }, []);
+  }, [navigate]);
 
   const formatMongoDate = (dateField) => {
     if (!dateField) return 'N/A';
@@ -77,8 +101,7 @@ const Dashboard = () => {
         ))}
       </div>
       
-      {/* CHATBOT ACTIVITY TABLE */}
-      <div className="bg-white shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white shadow-sm border border-gray-100 overflow-hidden rounded-xl">
         <div className="p-6 border-b border-gray-100 bg-[#111827] flex justify-between items-center">
           <h3 className="text-white font-black uppercase tracking-widest text-xs flex items-center gap-2">
             <MessageSquare size={16} className="text-[#00B4D8]" /> Recent Chatbot Requests
@@ -103,17 +126,20 @@ const Dashboard = () => {
                 recentRequests.map((req) => (
                   <tr key={req._id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-8 py-4">
-                      <p className="font-bold text-gray-900 text-sm">{req.clientName}</p>
-                      <p className="text-[10px] font-mono text-[#00B4D8]">{req.clientPhone}</p>
+                      <p className="font-bold text-gray-900 text-sm">{req.clientName || 'Unknown Name'}</p>
+                      <p className="text-[10px] font-mono text-[#00B4D8]">{req.clientPhone || 'No Phone'}</p>
                     </td>
                     <td className="px-8 py-4 text-xs font-bold text-gray-600">
-                      <span className="bg-gray-100 px-2 py-1 rounded text-gray-500">{req.requestType}</span>
+                      {/* Check for both serviceType and requestType */}
+                      <span className="bg-gray-100 px-2 py-1 rounded text-gray-500">
+                        {req.serviceType || req.requestType || 'General Inquiry'}
+                      </span>
                     </td>
                     <td className="px-8 py-4">
                       <span className={`text-[9px] font-black px-2 py-1 uppercase tracking-tighter rounded ${
-                        req.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                        req.status?.toUpperCase() === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {req.status}
+                        {req.status || 'PENDING'}
                       </span>
                     </td>
                     <td className="px-8 py-4 text-gray-400">
@@ -127,7 +153,7 @@ const Dashboard = () => {
               ) : (
                 <tr>
                   <td colSpan="4" className="px-8 py-10 text-center text-gray-400 text-xs font-bold uppercase tracking-[0.2em]">
-                    No recent chatbot activity
+                    No recent chatbot activity found
                   </td>
                 </tr>
               )}

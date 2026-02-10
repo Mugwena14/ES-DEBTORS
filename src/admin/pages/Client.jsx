@@ -21,7 +21,6 @@ const Clients = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', idNumber: '', phoneNumber: '', accountStatus: 'Active' });
 
-  // --- NEW: Confirmation Modal State ---
   const [confirmConfig, setConfirmConfig] = useState({ 
     isOpen: false, 
     title: '', 
@@ -31,6 +30,11 @@ const Clients = () => {
   });
 
   const clientsPerPage = 10;
+
+  // --- NEW: Reset to Page 1 when searching ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   useEffect(() => { fetchClients(); }, []);
 
@@ -43,7 +47,6 @@ const Clients = () => {
     finally { setLoading(false); }
   };
 
-  // --- NEW: Confirmation Trigger for Form (Update/Create) ---
   const triggerSubmitConfirm = (e) => {
     e.preventDefault();
     setConfirmConfig({
@@ -69,7 +72,6 @@ const Clients = () => {
     } finally { setIsSubmitting(false); }
   };
 
-  // --- NEW: Confirmation Trigger for Delete ---
   const triggerDeleteConfirm = (id) => {
     setConfirmConfig({
       isOpen: true,
@@ -103,20 +105,25 @@ const Clients = () => {
     setSelectedClientId(null);
   };
 
-  const filteredClients = clients.filter(c => c.idNumber?.includes(searchTerm) || c.name?.toLowerCase().includes(searchTerm.toLowerCase()));
-  const currentClients = filteredClients.slice((currentPage - 1) * clientsPerPage, currentPage * clientsPerPage);
+  const filteredClients = clients.filter(c => 
+    c.idNumber?.includes(searchTerm) || 
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const totalPages = Math.ceil(filteredClients.length / clientsPerPage);
+  
+  // Ensure we don't try to slice a page that doesn't exist anymore after a search
+  const safePage = Math.min(currentPage, totalPages || 1);
+  const currentClients = filteredClients.slice((safePage - 1) * clientsPerPage, safePage * clientsPerPage);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* ADD/EDIT FORM MODAL */}
       <ClientModal 
         isOpen={isModalOpen} isEditMode={isEditMode} formData={formData} 
         setFormData={setFormData} onSubmit={triggerSubmitConfirm} 
         onClose={() => { setIsModalOpen(false); resetForm(); }} isSubmitting={isSubmitting} 
       />
 
-      {/* REUSABLE CONFIRMATION MODAL */}
       <ConfirmationModal 
         isOpen={confirmConfig.isOpen}
         title={confirmConfig.title}
@@ -128,7 +135,7 @@ const Clients = () => {
 
       <SearchHeader searchTerm={searchTerm} setSearchTerm={setSearchTerm} onAddClick={() => { resetForm(); setIsModalOpen(true); }} />
 
-      <div className="bg-white shadow-xl overflow-hidden border border-gray-100">
+      <div className="bg-white shadow-xl overflow-hidden border border-gray-100 rounded-xl">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[#111827] text-white uppercase text-[10px] tracking-[0.2em] font-bold">
@@ -142,22 +149,28 @@ const Clients = () => {
               <tr>
                 <td colSpan="3" className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-[#00B4D8]" size={32} /></td>
               </tr>
-            ) : currentClients.map(client => (
-              <ClientRow 
-                key={client._id} client={client} isExpanded={expandedId === client._id} 
-                onToggleExpand={(id) => setExpandedId(expandedId === id ? null : id)}
-                activeMenuId={activeMenuId} setActiveMenuId={setActiveMenuId}
-                onEdit={openEditModal} onDelete={triggerDeleteConfirm}
-              />
-            ))}
+            ) : currentClients.length > 0 ? (
+                currentClients.map(client => (
+                <ClientRow 
+                  key={client._id} client={client} isExpanded={expandedId === client._id} 
+                  onToggleExpand={(id) => setExpandedId(expandedId === id ? null : id)}
+                  activeMenuId={activeMenuId} setActiveMenuId={setActiveMenuId}
+                  onEdit={openEditModal} onDelete={triggerDeleteConfirm}
+                />
+                ))
+            ) : (
+                <tr>
+                    <td colSpan="3" className="py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">No clients found matching "{searchTerm}"</td>
+                </tr>
+            )}
           </tbody>
         </table>
         
         <div className="p-6 bg-gray-50 flex justify-between items-center border-t border-gray-100">
-          <p className="text-xs font-bold text-gray-400 uppercase">Page {currentPage} of {totalPages || 1}</p>
+          <p className="text-xs font-bold text-gray-400 uppercase">Page {safePage} of {totalPages || 1}</p>
           <div className="flex gap-2">
-            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-4 py-2 border border-gray-300 text-xs font-bold uppercase disabled:opacity-30">Prev</button>
-            <button disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="px-4 py-2 bg-[#111827] text-[#00B4D8] text-xs font-bold uppercase disabled:opacity-30">Next</button>
+            <button disabled={safePage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-4 py-2 border border-gray-300 text-xs font-bold uppercase disabled:opacity-30">Prev</button>
+            <button disabled={safePage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="px-4 py-2 bg-[#111827] text-[#00B4D8] text-xs font-bold uppercase disabled:opacity-30">Next</button>
           </div>
         </div>
       </div>

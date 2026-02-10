@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertTriangle, X, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -9,9 +10,9 @@ import DocumentTable from '../components/DocumentTable';
 import FilterBar from '../components/FilterBar';
 
 const DebtReview = () => {
+  const navigate = useNavigate();
   const [clientId, setClientId] = useState('');
   const [emails, setEmails] = useState(['']); 
-  // NEW: State for the mandatory ID and POA files
   const [attachments, setAttachments] = useState({ idFile: null, poaFile: null });
 
   const [requests, setRequests] = useState([]);
@@ -30,6 +31,24 @@ const DebtReview = () => {
   });
 
   const API_BASE_URL = 'https://mkh-debtors-backend.onrender.com/api/admin';
+
+  // --- AUTH HELPERS ---
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('adminToken');
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  };
+
+  const handleAuthError = (err) => {
+    if (err.response && err.response.status === 401) {
+      localStorage.removeItem('adminToken');
+      navigate('/login');
+    }
+    console.error("API Error:", err);
+  };
 
   const filteredRequests = requests.filter((req) => {
     const isDebtReviewType = req.requestType === 'Debt Review';
@@ -50,9 +69,11 @@ const DebtReview = () => {
 
   const fetchLogs = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/logs`);
+      const res = await axios.get(`${API_BASE_URL}/logs`, getAuthHeaders());
       if (res.data.success) setRequests(res.data.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      handleAuthError(err);
+    }
   };
 
   useEffect(() => { fetchLogs(); }, []);
@@ -62,7 +83,6 @@ const DebtReview = () => {
   const handleRequest = async () => {
     const recipientList = emails.filter(email => email.trim() !== '');
 
-    // VALIDATION: Ensure ID, email, and files are present
     if (!clientId || recipientList.length === 0 || !attachments.idFile || !attachments.poaFile) {
       setModalConfig({ 
         isOpen: true, 
@@ -76,7 +96,6 @@ const DebtReview = () => {
 
     setLoading(true);
 
-    // Prepare Multipart FormData
     const formData = new FormData();
     formData.append('idNumber', clientId);
     formData.append('requestType', 'Debt Review');
@@ -85,9 +104,7 @@ const DebtReview = () => {
     formData.append('poaFile', attachments.poaFile);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await axios.post(`${API_BASE_URL}/request-document`, formData, getAuthHeaders());
       if (res.data.success) { 
         setSubmitted(true); 
         fetchLogs(); 
@@ -96,6 +113,8 @@ const DebtReview = () => {
       if (err.response?.status === 404) { 
         setErrorDetails(clientId); 
         setShowErrorModal(true); 
+      } else {
+        handleAuthError(err);
       }
     } finally { setLoading(false); }
   };
@@ -104,9 +123,14 @@ const DebtReview = () => {
     setModalConfig({
       isOpen: true, title: "Confirm Status Change", message: "Mark Clearance Certificate as Received?", type: "info",
       onConfirm: async () => {
-        // Updated to use the PATCH route for status updates
-        await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' });
-        fetchLogs(); setActiveMenuId(null); closeModal();
+        try {
+          await axios.patch(`${API_BASE_URL}/update-request-status/${requestId}`, { status: 'Received' }, getAuthHeaders());
+          fetchLogs(); 
+          setActiveMenuId(null); 
+          closeModal();
+        } catch (err) {
+          handleAuthError(err);
+        }
       }
     });
   };
@@ -115,8 +139,14 @@ const DebtReview = () => {
     setModalConfig({
       isOpen: true, title: "Delete Record", message: "This action cannot be undone.", type: "danger",
       onConfirm: async () => {
-        await axios.delete(`${API_BASE_URL}/delete-request/${requestId}`);
-        fetchLogs(); setActiveMenuId(null); closeModal();
+        try {
+          await axios.delete(`${API_BASE_URL}/delete-request/${requestId}`, getAuthHeaders());
+          fetchLogs(); 
+          setActiveMenuId(null); 
+          closeModal();
+        } catch (err) {
+          handleAuthError(err);
+        }
       }
     });
   };
