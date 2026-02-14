@@ -34,8 +34,7 @@ const AdminLayout = () => {
       subLinks: [
         { name: 'Paid Up', path: '/admin/docs/paid-up' },
         { name: 'Prescription', path: '/admin/docs/prescription' },
-        { name: 'Debt Review', path: '/admin/docs/debt-review' },
-        { name: 'Defaults', path: '/admin/docs/defaults' },
+        { name: 'Discounts', path: '/admin/docs/defaults' },
       ]
     },
     { name: 'Invoices', path: '/admin/invoices', icon: <CreditCard size={20} /> },
